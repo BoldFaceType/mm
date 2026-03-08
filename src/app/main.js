@@ -442,7 +442,7 @@ window.addEventListener("keyup", (e) => {
 
 // comms w/outside world (we're in an iframe, e.g.)
 
-const RESPONDERS = {
+export const RUNTIME_SHELL_RESPONDERS = {
   getUrlInfo: () => {
     // console.log(`HEY getUrlInfo called`)
     event.source.postMessage({ url_info }, event.origin);
@@ -473,7 +473,7 @@ const RESPONDERS = {
 
 window.addEventListener("message", (event) => {
   Object.entries(event.data).forEach(([k, v]) => {
-    const r = RESPONDERS[k];
+    const r = RUNTIME_SHELL_RESPONDERS[k];
     r && r(v);
   });
 });
@@ -628,5 +628,9 @@ window.onload = () => {
 // run
 //
 
-initFromSearchParams();
-animate();
+export function bootRuntimeShell() {
+  initFromSearchParams();
+  animate();
+}
+
+bootRuntimeShell();
