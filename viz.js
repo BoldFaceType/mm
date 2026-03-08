@@ -2,6 +2,7 @@
 
 import * as THREE from 'three'
 import * as util from './util.js'
+import { parseExpressionAst } from './src/expr/expression-ast.js'
 
 //
 // shader
@@ -1975,29 +1976,7 @@ export const rightLeaf = p => p.right.matmul ? rightLeaf(p.right) : p.right
 
 function parseExpr(s) {
   try {
-    const node = spec => typeof spec == 'string' ? { name: spec } : make(spec)
-    const make = spec => {
-      const i = spec[1] == '=' ? 2 : 0
-      const rname = r => /\s+/.test(r.name) ? '(' + r.name + ')' : r.name
-      const f = (left, x) => {
-        const right = node(x)
-        return { left, right, name: left.name + ' @ ' + rname(right) }
-      }
-      const p = spec.slice(i + 1).reduce(f, node(spec[i]))
-      i > 0 && (p.name = spec[0])
-      return p
-    }
-    s = '[' + s.replace(/\s+/g, '').
-      replace(/(\w+[\w\.\-\!\#\$\%\^\&\/\[\]]*)/g, '"$1"').
-      replaceAll('@', ',').
-      replaceAll('(', '[').
-      replaceAll(')', ']').
-      replaceAll('=', ',"=",') + ']'
-    let spec = eval?.(s)
-    while (spec.length == 1) {
-      spec = spec[0]
-    }
-    return make(spec)
+    return parseExpressionAst(s)
   } catch (e) {
     console.log(`error evaluating '${s}': ${e.message}`)
   }
@@ -2101,5 +2080,4 @@ export function genExpr(p) {
   const named = `${p.left.name} @ ${p.right.name}`
   return p.name == expanded || p.name == named ? expanded : `${p.name} = ${expanded}`
 }
-
 
