@@ -80,12 +80,84 @@ function fp16ToFp32(h) {
 // IMPORTANT: These functions need proper implementations based on the ggml library's
 // dequantization logic for each specific type (e.g., Q4_K_M involves scales, mins, etc.).
 // Providing stubs with warnings for now.
+
+function dequantize_Q4_0(buffer, numElements) {
+  const QK = 32;
+  const block_size = 18;
+  const num_blocks = Math.ceil(numElements / QK);
+  const result = new Float32Array(numElements);
+  const dataView = new DataView(buffer);
+
+  for (let i = 0; i < num_blocks; i++) {
+    const offset = i * block_size;
+    const d = fp16ToFp32(dataView.getUint16(offset, true));
+
+    for (let j = 0; j < QK / 2; j++) {
+      const vi = dataView.getUint8(offset + 2 + j);
+
+      const v0 = (vi & 0x0f) - 8;
+      const v1 = (vi >> 4) - 8;
+
+      const out_idx0 = i * QK + j;
+      const out_idx1 = i * QK + j + QK / 2;
+
+      if (out_idx0 < numElements) result[out_idx0] = v0 * d;
+      if (out_idx1 < numElements) result[out_idx1] = v1 * d;
+    }
+  }
+  return result;
+}
+
+function dequantize_Q4_1(buffer, numElements) {
+  const QK = 32;
+  const block_size = 20;
+  const num_blocks = Math.ceil(numElements / QK);
+  const result = new Float32Array(numElements);
+  const dataView = new DataView(buffer);
+
+  for (let i = 0; i < num_blocks; i++) {
+    const offset = i * block_size;
+    const d = fp16ToFp32(dataView.getUint16(offset, true));
+    const m = fp16ToFp32(dataView.getUint16(offset + 2, true));
+
+    for (let j = 0; j < QK / 2; j++) {
+      const vi = dataView.getUint8(offset + 4 + j);
+
+      const v0 = vi & 0x0f;
+      const v1 = vi >> 4;
+
+      const out_idx0 = i * QK + j;
+      const out_idx1 = i * QK + j + QK / 2;
+
+      if (out_idx0 < numElements) result[out_idx0] = v0 * d + m;
+      if (out_idx1 < numElements) result[out_idx1] = v1 * d + m;
+    }
+  }
+  return result;
+}
+
+function dequantize_Q8_0(buffer, numElements) {
+  const QK = 32;
+  const block_size = 34;
+  const num_blocks = Math.ceil(numElements / QK);
+  const result = new Float32Array(numElements);
+  const dataView = new DataView(buffer);
+
+  for (let i = 0; i < num_blocks; i++) {
+    const offset = i * block_size;
+    const d = fp16ToFp32(dataView.getUint16(offset, true));
+
+    for (let j = 0; j < QK; j++) {
+      const v = dataView.getInt8(offset + 2 + j);
+      const out_idx = i * QK + j;
+      if (out_idx < numElements) result[out_idx] = v * d;
+    }
+  }
+  return result;
+}
+
 function dequantize_Q4_K_M(buffer, numElements, shape) {
   console.warn("Dequantization for Q4_K_M not implemented.");
-  return null;
-}
-function dequantize_Q8_0(buffer, numElements, shape) {
-  console.warn("Dequantization for Q8_0 not implemented.");
   return null;
 }
 // ... add functions for other Q_ types as needed ...
@@ -129,10 +201,14 @@ function dequantizeTensorData(buffer, typeEnum, numElements, shape) {
       return { data: floatArray, typeName: "FP16" };
     }
     // --- Placeholder calls for other dequantization types ---
-    else if (typeEnum === GGML_TYPE.Q4_K_M) {
-      return { data: dequantize_Q4_K_M(buffer, numElements, shape), typeName }; // Use specific dequant func
+    else if (typeEnum === GGML_TYPE.Q4_0) {
+      return { data: dequantize_Q4_0(buffer, numElements), typeName };
+    } else if (typeEnum === GGML_TYPE.Q4_1) {
+      return { data: dequantize_Q4_1(buffer, numElements), typeName };
     } else if (typeEnum === GGML_TYPE.Q8_0) {
-      return { data: dequantize_Q8_0(buffer, numElements, shape), typeName }; // Use specific dequant func
+      return { data: dequantize_Q8_0(buffer, numElements), typeName };
+    } else if (typeEnum === GGML_TYPE.Q4_K_M) {
+      return { data: dequantize_Q4_K_M(buffer, numElements, shape), typeName }; // Use specific dequant func
     }
     // ... Add other else if blocks for implemented quantization types ...
     else {
@@ -419,33 +495,26 @@ export class GGUFLoader {
    * @returns {number} Approximate size in bytes.
    */
   _calculateTensorSizeApprox(typeEnum, numElements, tensorName = "tensor") {
-    // TODO: Replace this with accurate calculations based on ggml.c source for each type.
-    // This requires understanding block sizes (QK_K, QK8_0) and overhead per block (scales, mins).
-    let bytesPerElementApprox = 0;
     switch (typeEnum) {
       case GGML_TYPE.F32:
-        bytesPerElementApprox = 4;
-        break;
+        return numElements * 4;
       case GGML_TYPE.F16:
-        bytesPerElementApprox = 2;
-        break;
+        return numElements * 2;
+      case GGML_TYPE.Q4_0:
+        return Math.ceil(numElements / 32) * 18;
+      case GGML_TYPE.Q4_1:
+        return Math.ceil(numElements / 32) * 20;
       case GGML_TYPE.Q8_0:
-        bytesPerElementApprox = 1 + 4 / 32;
-        break; // Rough guess for Q8_0
+        return Math.ceil(numElements / 32) * 34;
       case GGML_TYPE.Q4_K_M:
-        bytesPerElementApprox = 0.5 + 12 / 256;
-        break; // Rough guess for Q4_K_M
-      // Add more rough estimates or ideally *accurate* calculations based on ggml.c
+        return Math.ceil(numElements * (0.5 + 12 / 256)); // Rough guess for Q4_K_M
+      // Add more exact calculations based on ggml.c
       default:
         console.warn(
           `Cannot accurately estimate size for type ${GGML_TYPE_NAMES[typeEnum] || typeEnum} for tensor "${tensorName}". Returning 0. Extraction may fail.`,
         );
         return 0;
     }
-    // For types quantized in blocks, the correct calculation is:
-    // (numElements / blockSize) * bytesPerBlock
-    // This linear approximation will be wrong.
-    return Math.ceil(numElements * bytesPerElementApprox);
   }
   /**
    * Main method to parse the entire GGUF file from an ArrayBuffer.

@@ -20,29 +20,35 @@ test("tryURLInit returns function and caches by canonical URL key", () => {
   let openCount = 0;
   let sendCount = 0;
 
-  globalThis.URL = /** @type {any} */ (class MockURL {
-    constructor() {
-      this.href = canonicalHref;
+  globalThis.URL = /** @type {any} */ (
+    class MockURL {
+      constructor() {
+        this.href = canonicalHref;
+      }
+      static createObjectURL() {}
+      static revokeObjectURL() {}
+      static canParse() {
+        return true;
+      }
+      static parse() {}
     }
-    static createObjectURL() {}
-    static revokeObjectURL() {}
-    static canParse() { return true; }
-    static parse() {}
-  });
+  );
 
-  globalThis.XMLHttpRequest = /** @type {any} */ (class MockXMLHttpRequest {
-    open(method, url, isAsync) {
-      assert.equal(method, "GET");
-      assert.equal(isAsync, false);
-      openedUrls.push(url);
-      openCount += 1;
-    }
+  globalThis.XMLHttpRequest = /** @type {any} */ (
+    class MockXMLHttpRequest {
+      open(method, url, isAsync) {
+        assert.equal(method, "GET");
+        assert.equal(isAsync, false);
+        openedUrls.push(url);
+        openCount += 1;
+      }
 
-    send() {
-      this.responseText = "1,2\n3,4";
-      sendCount += 1;
+      send() {
+        this.responseText = "1,2\n3,4";
+        sendCount += 1;
+      }
     }
-  });
+  );
 
   try {
     const first = tryURLInit("https://example.com/data.csv?a=1");

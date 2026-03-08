@@ -51,7 +51,8 @@ export function createUrlState({
   }
 
   function initFromSearchParams() {
-    const searchParams = new URL(/** @type {any} */ (window.location)).searchParams;
+    const searchParams = new URL(/** @type {any} */ (window.location))
+      .searchParams;
     if (searchParams.size > 0) {
       util.updateObjectFromSearchParams(params, searchParams);
     } else {
