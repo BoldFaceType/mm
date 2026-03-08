@@ -6,7 +6,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 import * as viz from "../../viz.js";
 import * as util from "../../util.js";
-import * as gui from "../../gui.js";
+import { initUiControls } from "./ui-controls.js";
 
 //
 // params start with single-mm default, get updated from url params
@@ -299,17 +299,17 @@ function initFromParams(save = true) {
   initAxes(params.deco.axes);
   initObj();
 
-  // gui setup happens here but probably shouldn't
-  const callbacks = {
+  initUiControls({
+    params,
     initObj,
     getObj,
     saveUrl,
     updateTitle,
     animPause,
     animStep,
-  };
-  const info = { url_info, render_info };
-  gui.initGui(params, callbacks, info);
+    url_info,
+    render_info,
+  });
 }
 
 function initFromSearchParams() {
