@@ -7,6 +7,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import * as viz from "../../viz.js";
 import * as util from "../../util.js";
 import * as gui from "../../gui.js";
+import { createUrlState } from "./url-state.js";
 
 //
 // params start with single-mm default, get updated from url params
@@ -68,54 +69,8 @@ const default_params = (() => {
   return p;
 })();
 
-function resetParams() {
-  Object.entries(util.copyTree(default_params)).forEach(
-    ([k, v]) => (params[k] = v),
-  );
-  params.cam = viz.defaultCam();
-}
-
 function updateTitle() {
   document.getElementById("info").innerHTML = viz.genExpr(params);
-}
-
-const url_info = {
-  json: "",
-  url: urlPrefix(),
-  compressed: "",
-  search_params: "",
-};
-
-function urlPrefix() {
-  return window.location.origin + window.location.pathname;
-}
-
-function saveUrlInfo() {
-  url_info.json = JSON.stringify(params);
-  const prefix = urlPrefix();
-  let search_params = util.makeSearchParams(params);
-  // not the cleanest place to do it, but - turn compression on when params get big
-  if (!params.compress && search_params.toString().length > 2048) {
-    params.compress = true;
-    search_params = util.makeSearchParams(params);
-  }
-  // url is whatever we're putting in history, compressed is always compressed
-  url_info.url = prefix + "?" + search_params;
-  url_info.compressed =
-    prefix + "?" + util.makeSearchParams({ ...params, compress: true });
-  url_info.search_params = "" + search_params;
-}
-
-function saveUrl() {
-  saveUrlInfo();
-  window.history.pushState({}, "", url_info.url);
-  // send to parent if we're in an iframe
-  if (window.parent != window) {
-    window.parent.postMessage(
-      { search_params: url_info.search_params },
-      parent.origin,
-    );
-  }
 }
 
 // obj
@@ -312,19 +267,14 @@ function initFromParams(save = true) {
   gui.initGui(params, callbacks, info);
 }
 
-function initFromSearchParams() {
-  const searchParams = new URL(window.location).searchParams;
-  if (searchParams.size > 0) {
-    util.updateObjectFromSearchParams(params, searchParams);
-  } else {
-    resetParams();
-  }
-  if (params.sync_expr !== undefined) {
-    delete params.sync_expr;
-  }
-  params.expr = viz.genExpr(params);
-  initFromParams(false);
-}
+const { url_info, saveUrlInfo, saveUrl, initFromSearchParams, handleMessage } =
+  createUrlState({
+    params,
+    defaultParams: default_params,
+    util,
+    viz,
+    initFromParams,
+  });
 
 window.addEventListener("popstate", initFromSearchParams, false);
 
@@ -441,42 +391,7 @@ window.addEventListener("keyup", (e) => {
 });
 
 // comms w/outside world (we're in an iframe, e.g.)
-
-const RESPONDERS = {
-  getUrlInfo: () => {
-    // console.log(`HEY getUrlInfo called`)
-    event.source.postMessage({ url_info }, event.origin);
-  },
-  getParams: () => {
-    // console.log(`HEY getParams called`)
-    event.source.postMessage({ params }, event.origin);
-  },
-  setParams: ({ props = {}, reset = false }) => {
-    console.log(
-      `HEY setParams called props ${JSON.stringify(props)} reset ${reset}`,
-    );
-    reset && resetParams();
-
-    if (props.sync_expr) {
-      params.expr = props.expr;
-      viz.syncExpr(params);
-      delete props.sync_expr;
-    }
-    util.updatePropsRec(params, props);
-    params.expr = viz.genExpr(params);
-    if (props.layout?.scheme) {
-      viz.setLayoutScheme(params);
-    }
-    initFromParams();
-  },
-};
-
-window.addEventListener("message", (event) => {
-  Object.entries(event.data).forEach(([k, v]) => {
-    const r = RESPONDERS[k];
-    r && r(v);
-  });
-});
+window.addEventListener("message", handleMessage);
 
 // diag info updated on resize
 const display_info = { x: 0, y: 0, z: 0, devicePixelRatio: 0 };
