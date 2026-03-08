@@ -109,15 +109,28 @@ function tryEvalInitExpr(expr) {
 }
 
 function getInitFunc(init_params) {
-  const { init, min, max, dropout, url, expr } = init_params;
+  const { init, min, max, dropout, url, expr, tensor } = init_params;
   const f =
     INIT_FUNCS[init] ||
     (init == "url" && DataManager.load(url, "url")) ||
-    (init == "expr" && tryEvalInitExpr(expr));
+    (init == "expr" && tryEvalInitExpr(expr)) ||
+    (init == "gguf" &&
+      (() => {
+        const loader = DataManager.load(url, "gguf");
+        if (loader) {
+          const data = loader.getTensorData(tensor);
+          if (data) {
+            const info = loader.tensorInfos.find((t) => t.name === tensor);
+            const w = info && info.shape.length > 0 ? info.shape[0] : 1;
+            return (i, j) => data[i * w + j];
+          }
+        }
+        return () => 0;
+      })());
   if (!f) {
     console.log(
-      init == "url"
-        ? `'can't load from URL '${url}'`
+      init == "url" || init == "gguf"
+        ? `can't load from ${init.toUpperCase()} '${url}'`
         : `unrecognized initializer '${init}'`,
     );
     return () => 0;
@@ -456,6 +469,7 @@ export class Mat {
     this.data = data;
     this.H = data.h;
     this.W = data.w;
+    this.originalQuantType = params.originalQuantType;
     this.absmax = this.data.absmax();
     this.absmin = this.data.absmin();
 
@@ -777,7 +791,9 @@ export class Mat {
     const facing = this.isFacing();
     const rsu = this.isRightSideUp();
     const [H, W] = [this.H, this.W];
-    const name = this.params.name; // && this.params.name + (shape ? ` [${H}, ${W}]` : '')
+    const name = this.originalQuantType
+      ? `${this.params.name} (${this.originalQuantType})`
+      : this.params.name; // && this.params.name + (shape ? ` [${H}, ${W}]` : '')
 
     if (
       (size === undefined || size == this.params.deco.legends) &&
@@ -922,7 +938,11 @@ export class Mat {
               isNaN(x) || !isFinite(x)
                 ? 0.12
                 : 0.16 - 0.008 * Math.log10(Math.floor(1 + Math.abs(x)));
-            label = util.getText(x.toFixed(5), 0xffffff, fsiz);
+            let textStr = isNaN(x) || !isFinite(x) ? String(x) : x.toFixed(5);
+            if (this.originalQuantType) {
+              textStr += ` (${this.originalQuantType})`;
+            }
+            label = util.getText(textStr, 0xffffff, fsiz);
             count += 1;
             // label.name = `${this.params.name}.label[${i}, ${j}]`
             label.value = x;

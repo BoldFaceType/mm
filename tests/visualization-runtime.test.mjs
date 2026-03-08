@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { rebuildVisualizationObject } from "../src/app/visualization-runtime.js";
+import { DataManager } from "../src/data/data-manager.js";
 
 test("rebuildVisualizationObject disposes old object and wires new object", () => {
   const calls = {
@@ -63,4 +64,62 @@ test("rebuildVisualizationObject disposes old object and wires new object", () =
   assert.deepEqual(calls.sceneRemove, [oldObj.group]);
   assert.deepEqual(calls.sceneAdd, [newGroup]);
   assert.equal(calls.updateTitle, 1);
+});
+
+test("rebuildVisualizationObject enriches params with GGUF originalQuantType", () => {
+  const originalLoad = DataManager.load;
+  DataManager.load = (url, type) => {
+    if (type === "gguf" && url === "test.gguf") {
+      return {
+        tensorInfos: [
+          { name: "test_tensor", typeName: "Q4_0" },
+        ],
+      };
+    }
+    return null;
+  };
+
+  const params = {
+    init: "gguf",
+    url: "test.gguf",
+    tensor: "test_tensor",
+    left: {
+      init: "gguf",
+      url: "test.gguf",
+      tensor: "missing_tensor"
+    }
+  };
+
+  /** @type {any} */
+  let capturedParams = null;
+  class MatMulMock {
+    constructor(p) {
+      capturedParams = p;
+      return {
+        group: { rotation: { x: 0 } },
+        center: () => {},
+        setLegends: () => {},
+        initAnimation: () => {},
+        getBoundingBox: () => ({ h: 1, w: 1, d: 1 })
+      };
+    }
+  }
+
+  rebuildVisualizationObject({
+    obj: null,
+    params,
+    viz: { MatMul: MatMulMock },
+    util: { bbhwd: () => ({ h: 1, w: 1, d: 1 }) },
+    getContext: () => ({}),
+    scene: { add: () => {} },
+    camera: {},
+    orbit: {},
+    requestCameraPositionSave: () => {},
+    updateTitle: () => {},
+  });
+
+  assert.equal(capturedParams?.originalQuantType, "Q4_0");
+  assert.equal(capturedParams?.left.originalQuantType, undefined);
+
+  DataManager.load = originalLoad;
 });
