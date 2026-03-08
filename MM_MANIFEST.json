@@ -1,0 +1,140 @@
+{
+  "manifest_version": "1.0",
+  "generated_at": "2026-03-08",
+  "source": {
+    "repo": "https://github.com/BoldFaceType/mm",
+    "branch": "BoldFaceType-patch-1",
+    "base_branch": "master"
+  },
+  "scope": {
+    "description": "Files added by branch BoldFaceType-patch-1",
+    "total_files": 9,
+    "file_types": {
+      "docx": 7,
+      "txt": 2
+    }
+  },
+  "files": [
+    {
+      "path": "Inside the Matrix_ Visualizing matmuls, attention and beyond.txt",
+      "type": "text/plain",
+      "size_bytes": 35,
+      "sha256": "e6a1b1e278961fd01c920a71c5dc22e2a2c2dbccf95ffdedebb42c829ac62186",
+      "summary": "Single URL pointing to MM intro page.",
+      "content": {
+        "url": "https://bhosmer.github.io/mm/intro/"
+      }
+    },
+    {
+      "path": "https_github..txt",
+      "type": "text/plain",
+      "size_bytes": 41,
+      "sha256": "7f6f1674a4b87d2e9cdc505650b5ada190110ea0a26a8ee148f200f87699fc7f",
+      "summary": "Single URL pointing to upstream mm repository tree.",
+      "content": {
+        "url": "https://github.com/bhosmer/mm/tree/master"
+      }
+    },
+    {
+      "path": "MM - Conceptual_AST.docx",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 11055,
+      "sha256": "f14e2984af12ca6b301725156a2bfa50b269e9a225627713a4a823dedfa43244",
+      "summary": "Conceptual module/dependency overview (not a literal AST).",
+      "topics": [
+        "index.html orchestration",
+        "viz.js Mat/MatMul structure",
+        "gui.js interactions",
+        "util.js helpers",
+        "proposed DataManager/GGUFLoader/SimulationEngine modules"
+      ]
+    },
+    {
+      "path": "MM - Control_Flow_Diagram.docx",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 10225,
+      "sha256": "1c94d9c3ecf8aa57a923ddb309ed70ea74b317bacde20e30da4171e2db9fd3af",
+      "summary": "High-level control flow with Mermaid diagram.",
+      "topics": [
+        "startup and initialization",
+        "GUI parameter change handling",
+        "GGUF mapping validation path",
+        "animation/simulation loop control"
+      ]
+    },
+    {
+      "path": "MM - Data_Flow_Diagram.docx",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 10225,
+      "sha256": "4b179e33cb52f482a34132d8e475143743457b3aede7480f752c07ccfb6b6ec5",
+      "summary": "High-level data flow with Mermaid diagram.",
+      "topics": [
+        "params and URL sync",
+        "DataManager and GGUFLoader pathways",
+        "SimulationEngine activation caching",
+        "visualization/render pipeline"
+      ]
+    },
+    {
+      "path": "MM - File_Tree.docx",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 9107,
+      "sha256": "173feb347d7e3b12b60db877329cdb52e8dc7acc032867c9676488d8f0904ef5",
+      "summary": "Proposed future project tree and modular layout.",
+      "topics": [
+        "js/main.js, params.js, viz.js, gui.js, util.js",
+        "js/data/DataManager.js",
+        "js/data/GGUFLoader.js",
+        "js/data/SimulationEngine.js",
+        "tests and config structure"
+      ]
+    },
+    {
+      "path": "MM - GGUFLoader_js.docx",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 22111,
+      "sha256": "6f21e63bb94145567c21c06fd77919da20325731a8fe87c4a929685b28cd9907",
+      "summary": "Verbose GGUFLoader implementation notes with parser/dequantization details.",
+      "topics": [
+        "GGUF constants and metadata parsing",
+        "FP16 to FP32 conversion",
+        "tensor type handling",
+        "dequantization stubs for quantized formats"
+      ]
+    },
+    {
+      "path": "MM - viz_js.docx",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 10638,
+      "sha256": "2588eaf0b0269ae2c210970107fa7d7d2ba9c68f2f450e1debc3ed0834e0356f",
+      "summary": "Verbose notes for viz.js legend updates and quantization label display.",
+      "topics": [
+        "Mat.setLegends behavior",
+        "originalQuantType label display",
+        "legend state caching",
+        "label cleanup/regeneration flow"
+      ]
+    },
+    {
+      "path": "PRD_MM-3D Model Data Visualizer.docx",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 11478,
+      "sha256": "499857bed4593bda403110d70edfd9a78e5f24c07951499d1923119e2864fe50",
+      "summary": "PRD for MM including goals, non-goals, personas, and feature requirements.",
+      "topics": [
+        "product goals and constraints",
+        "GGUF loading and mapping requirements",
+        "simulation workflow",
+        "modular architecture direction"
+      ]
+    }
+  ],
+  "assessment": {
+    "is_code_change": false,
+    "classification": "documentation_and_links",
+    "notes": [
+      "Added files are planning/design artifacts and URL pointers.",
+      "No executable source files were introduced in this branch change set."
+    ]
+  }
+}
