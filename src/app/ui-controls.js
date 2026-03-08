@@ -22,5 +22,5 @@ export function initUiControls({
     animStep,
   };
   const info = { url_info, render_info };
-  gui.initGui(params, callbacks, info);
+  return gui.initGui(params, callbacks, info);
 }
