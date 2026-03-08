@@ -9,12 +9,7 @@ import * as util from "../../util.js";
 import { createUrlState } from "./url-state.js";
 import { initUiControls } from "./ui-controls.js";
 import { rebuildVisualizationObject } from "./visualization-runtime.js";
-import {
-  createSimulationRuntime,
-  requestAnimationStep,
-  setAnimationPause,
-  stepSimulation,
-} from "./simulation-runtime.js";
+import { SimulationEngine } from "./simulation-engine.js";
 
 //
 // params start with single-mm default, get updated from url params
@@ -402,13 +397,13 @@ pixel_ratio_watcher.addEventListener("change", (_) => syncVizToRenderer(true));
 // animation
 //
 
-const sim = createSimulationRuntime(params.anim);
+const sim = new SimulationEngine(params.anim);
 function animPause(p) {
-  setAnimationPause(sim, p);
+  sim.setAnimationPause(p);
 }
 
 function animStep() {
-  requestAnimationStep(sim);
+  sim.requestAnimationStep();
 }
 
 // axes
@@ -423,7 +418,7 @@ function initAxes(enabled) {
 
 function animate() {
   const t = performance.now();
-  stepSimulation(sim, params, obj, t);
+  sim.stepSimulation(params, obj, t);
 
   if (params.anim.spin != 0) {
     const rad = ((sim.last_anim - t) * params.anim.spin) / 20000;

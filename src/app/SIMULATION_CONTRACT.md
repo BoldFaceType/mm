@@ -1,10 +1,10 @@
-## Simulation Runtime Contract (Phase 2)
+## Simulation Engine Contract (Phase 3)
 
-This document defines the runtime behavior expected from `src/app/simulation-runtime.js` and how `src/app/main.js` integrates it.
+This document defines the runtime behavior expected from `src/app/simulation-engine.js` and how `src/app/main.js` integrates it.
 
 ### State model
 
-`createSimulationRuntime(initial)` returns a mutable runtime object with these fields:
+The `SimulationEngine` class maintains mutable runtime state with these core animation fields:
 
 - `anim_pause: boolean` - global pause gate for algorithm animation.
 - `anim_step: boolean` - one-shot step request flag used only while paused.
@@ -22,31 +22,42 @@ Initialization defaults:
 - `last_anim_alg = initial?.alg ?? "none"`
 - `last_anim_spin = initial?.spin ?? 0`
 
+### Execution Graph and Activation Cache
+
+The `SimulationEngine` now acts as a central coordinator for execution states:
+
+- **Execution Graph:** Managed via `loadExecutionGraph(graph)` to provide a step-by-step sequence of operations.
+- **Activation Cache:** A key-value store mapping node IDs/steps to activation data (`cacheActivation(id, data)`, `getActivation(id)`). This allows rewinding and inspecting state without re-running operations.
+- **Rewinding:** `rewindTo(stepIndex)` allows navigating the execution graph history.
+- **Hooks:** Visualization layer registers via `addStateListener(callback)` to read state changes whenever a step or rewind occurs.
+
 ### Step semantics
 
-`stepSimulation(runtime, params, obj, now)` must call `obj.bump()` exactly once when all conditions are true:
+`stepSimulation(params, obj, now)` must call `obj.bump()` exactly once when all conditions are true:
 
 1. `params.anim.alg != "none"`
-2. `runtime.anim_step || !runtime.anim_pause`
-3. `now - runtime.last_render > 1000 / params.anim.speed`
+2. `this.anim_step || !this.anim_pause`
+3. `now - this.last_render > 1000 / params.anim.speed`
 
 On a successful bump:
 
-- `runtime.last_render` is updated to `now`.
-- `runtime.anim_step` is cleared to `false`.
+- `this.last_render` is updated to `now`.
+- `this.anim_step` is cleared to `false`.
+- `this.current_step_index` advances.
+- Listeners are notified with the current state.
 
 If any condition fails, no bump occurs and state is unchanged.
 
 ### Pause/step contract
 
-- `setAnimationPause(runtime, pause)` only sets `runtime.anim_pause = pause`.
-- `requestAnimationStep(runtime)` only sets `runtime.anim_step = true` when currently paused.
+- `setAnimationPause(pause)` only sets `this.anim_pause = pause`.
+- `requestAnimationStep()` only sets `this.anim_step = true` when currently paused.
 - Step requests are one-shot and consumed by the next successful `stepSimulation` bump.
 - While unpaused, step requests are ignored by `requestAnimationStep`.
 - Integration in `main.js` maps:
-  - `animPause(p)` -> `setAnimationPause(sim, p)`
-  - `animStep()` -> `requestAnimationStep(sim)`
-  - `animate()` frame loop -> `stepSimulation(sim, params, obj, performance.now())`
+  - `animPause(p)` -> `engine.setAnimationPause(p)`
+  - `animStep()` -> `engine.requestAnimationStep()`
+  - `animate()` frame loop -> `engine.stepSimulation(params, obj, performance.now())`
 
 ### Timing assumptions
 
