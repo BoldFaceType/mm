@@ -1,0 +1,31 @@
+name: Slice Governance
+
+on:
+  pull_request:
+    branches:
+      - feat/vertical-slice-base
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate board events
+        run: node scripts/validate-board.mjs
+
+      - name: Check JS syntax
+        run: node scripts/check-js-syntax.mjs
+
+      - name: Check formatting
+        run: |
+          npx --yes prettier@3.5.3 --check "*.{js,html,md}" \
+            "scripts/**/*.mjs" \
+            "board/**/*.json" \
+            ".github/workflows/*.yml"
