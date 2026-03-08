@@ -7,6 +7,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import * as viz from "../../viz.js";
 import * as util from "../../util.js";
 import * as gui from "../../gui.js";
+import { rebuildVisualizationObject } from "./visualization-runtime.js";
 
 //
 // params start with single-mm default, get updated from url params
@@ -125,39 +126,18 @@ let obj;
 const getObj = () => obj;
 
 function initObj() {
-  let oldmag;
-  if (obj) {
-    const oldsz = util.bbhwd(obj.getBoundingBox());
-    oldmag = oldsz.h + oldsz.w + oldsz.d;
-    scene.remove(obj.group);
-    obj.disposeAll();
-  }
-
-  obj = new viz.MatMul(params, getContext());
-  obj.group.rotation.x = Math.PI;
-  obj.center();
-
-  if (oldmag) {
-    const newsz = util.bbhwd(obj.getBoundingBox());
-    const newmag = newsz.h + newsz.w + newsz.d;
-    const ratio = newmag / oldmag;
-    if (ratio != 1) {
-      console.log(`HEY ratio ${ratio}`);
-      camera.position.set(
-        camera.position.x * ratio,
-        camera.position.y * ratio,
-        camera.position.z * ratio,
-      );
-      orbit.update();
-      requestCameraPositionSave();
-    }
-  }
-
-  obj.setLegends();
-  obj.initAnimation();
-  scene.add(obj.group);
-
-  updateTitle();
+  obj = rebuildVisualizationObject({
+    obj,
+    params,
+    viz,
+    util,
+    getContext,
+    scene,
+    camera,
+    orbit,
+    requestCameraPositionSave,
+    updateTitle,
+  });
 }
 
 //
