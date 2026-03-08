@@ -1,6 +1,6 @@
 "use strict";
 
-export function createSimulationRuntime(initial = false) {
+export function createSimulationRuntime(initial = {}) {
   return {
     anim_pause: false,
     anim_step: false,

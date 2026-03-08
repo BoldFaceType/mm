@@ -6,8 +6,15 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 import * as viz from "../../viz.js";
 import * as util from "../../util.js";
-import * as gui from "../../gui.js";
 import { createUrlState } from "./url-state.js";
+import { initUiControls } from "./ui-controls.js";
+import { rebuildVisualizationObject } from "./visualization-runtime.js";
+import {
+  createSimulationRuntime,
+  requestAnimationStep,
+  setAnimationPause,
+  stepSimulation,
+} from "./simulation-runtime.js";
 
 //
 // params start with single-mm default, get updated from url params
@@ -80,39 +87,18 @@ let obj;
 const getObj = () => obj;
 
 function initObj() {
-  let oldmag;
-  if (obj) {
-    const oldsz = util.bbhwd(obj.getBoundingBox());
-    oldmag = oldsz.h + oldsz.w + oldsz.d;
-    scene.remove(obj.group);
-    obj.disposeAll();
-  }
-
-  obj = new viz.MatMul(params, getContext());
-  obj.group.rotation.x = Math.PI;
-  obj.center();
-
-  if (oldmag) {
-    const newsz = util.bbhwd(obj.getBoundingBox());
-    const newmag = newsz.h + newsz.w + newsz.d;
-    const ratio = newmag / oldmag;
-    if (ratio != 1) {
-      console.log(`HEY ratio ${ratio}`);
-      camera.position.set(
-        camera.position.x * ratio,
-        camera.position.y * ratio,
-        camera.position.z * ratio,
-      );
-      orbit.update();
-      requestCameraPositionSave();
-    }
-  }
-
-  obj.setLegends();
-  obj.initAnimation();
-  scene.add(obj.group);
-
-  updateTitle();
+  obj = rebuildVisualizationObject({
+    obj,
+    params,
+    viz,
+    util,
+    getContext,
+    scene,
+    camera,
+    orbit,
+    requestCameraPositionSave,
+    updateTitle,
+  });
 }
 
 //
@@ -254,17 +240,17 @@ function initFromParams(save = true) {
   initAxes(params.deco.axes);
   initObj();
 
-  // gui setup happens here but probably shouldn't
-  const callbacks = {
+  initUiControls({
+    params,
     initObj,
     getObj,
     saveUrl,
     updateTitle,
     animPause,
     animStep,
-  };
-  const info = { url_info, render_info };
-  gui.initGui(params, callbacks, info);
+    url_info,
+    render_info,
+  });
 }
 
 const { url_info, saveUrlInfo, saveUrl, initFromSearchParams, handleMessage } =
@@ -331,20 +317,20 @@ const key_funcs = {
   Space: () => {
     let init = false;
     if (params.anim.alg == "none") {
-      params.anim.alg = last_anim_alg;
+      params.anim.alg = sim.last_anim_alg;
       init = true;
-    } else if (anim_pause) {
+    } else if (sim.anim_pause) {
       animPause(false);
     } else {
-      last_anim_alg = params.anim.alg;
+      sim.last_anim_alg = params.anim.alg;
       params.anim.alg = "none";
       init = true;
     }
     if (params.anim.spin == 0) {
-      params.anim.spin = last_anim_spin;
+      params.anim.spin = sim.last_anim_spin;
       init = true;
     } else {
-      last_anim_spin = params.anim.spin;
+      sim.last_anim_spin = params.anim.spin;
       params.anim.spin = 0;
       init = true;
     }
@@ -361,7 +347,7 @@ const key_funcs = {
   KeyP: () => {
     // p
     if (params.anim.alg != "none") {
-      animPause(!anim_pause);
+      animPause(!sim.anim_pause);
     }
   },
   KeyS: () => {
@@ -416,21 +402,13 @@ pixel_ratio_watcher.addEventListener("change", (_) => syncVizToRenderer(true));
 // animation
 //
 
-// for spacebar control
-let last_anim_alg = params.anim.alg;
-let last_anim_spin = params.anim.spin;
-
-// animation loop circuit breaker
-let anim_pause = false;
+const sim = createSimulationRuntime(params.anim);
 function animPause(p) {
-  anim_pause = p;
+  setAnimationPause(sim, p);
 }
 
-let anim_step = false;
 function animStep() {
-  if (anim_pause) {
-    anim_step = true;
-  }
+  requestAnimationStep(sim);
 }
 
 // axes
@@ -443,23 +421,12 @@ function initAxes(enabled) {
   }
 }
 
-let last_render = 0,
-  last_anim = 0;
-
 function animate() {
   const t = performance.now();
-  if (
-    params.anim.alg != "none" &&
-    (anim_step || !anim_pause) &&
-    t - last_render > 1000 / params.anim.speed
-  ) {
-    obj.bump();
-    last_render = t;
-    anim_step = false;
-  }
+  stepSimulation(sim, params, obj, t);
 
   if (params.anim.spin != 0) {
-    const rad = ((last_anim - t) * params.anim.spin) / 20000;
+    const rad = ((sim.last_anim - t) * params.anim.spin) / 20000;
     const [cos, sin] = [Math.cos(rad), Math.sin(rad)];
     const { x, z } = camera.position;
     util.updateProps(camera.position, {
@@ -470,7 +437,7 @@ function animate() {
     requestLabelUpdate(true);
   }
 
-  last_anim = t;
+  sim.last_anim = t;
 
   util.updateProps(render_info, renderer.info.memory);
   renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);

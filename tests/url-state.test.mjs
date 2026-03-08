@@ -9,7 +9,7 @@ test("createUrlState basics and sync_expr setParams flow", () => {
   const pushStateCalls = [];
   const parentPostMessageCalls = [];
 
-  globalThis.window = {
+  globalThis.window = /** @type {any} */ ({
     location: {
       origin: "https://example.test",
       pathname: "/viz",
@@ -24,7 +24,7 @@ test("createUrlState basics and sync_expr setParams flow", () => {
         parentPostMessageCalls.push(args);
       },
     },
-  };
+  });
   globalThis.window.parent = globalThis.window;
 
   try {

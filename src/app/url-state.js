@@ -51,7 +51,7 @@ export function createUrlState({
   }
 
   function initFromSearchParams() {
-    const searchParams = new URL(window.location).searchParams;
+    const searchParams = new URL(/** @type {any} */ (window.location)).searchParams;
     if (searchParams.size > 0) {
       util.updateObjectFromSearchParams(params, searchParams);
     } else {
@@ -72,7 +72,7 @@ export function createUrlState({
       getParams: () => {
         event.source.postMessage({ params }, event.origin);
       },
-      setParams: ({ props = {}, reset = false }) => {
+      setParams: (/** @type {any} */ { props = {}, reset = false }) => {
         if (reset) {
           resetParams();
         }
