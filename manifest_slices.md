@@ -11,14 +11,14 @@ Last updated: 2026-03-08
 
 ## Slice Snapshot
 
-| Slice         | Branch                | Worktree                        | Owner           | Status      | Latest Commit |
-| ------------- | --------------------- | ------------------------------- | --------------- | ----------- | ------------- |
-| runtime-shell | `slice/runtime-shell` | `worktrees/slice-runtime-shell` | agent-runtime-1 | in_progress | `66a9560`     |
-| url-state     | `slice/url-state`     | `worktrees/slice-url-state`     | agent-url-1     | in_progress | `4da2c8b`     |
-| ui-controls   | `slice/ui-controls`   | `worktrees/slice-ui-controls`   | agent-ui-1      | in_progress | `7b7e3eb`     |
-| visualization | `slice/visualization` | `worktrees/slice-visualization` | agent-viz-1     | in_progress | `c6f2363`     |
-| data-loading  | `slice/data-loading`  | `worktrees/slice-data-loading`  | agent-data-1    | in_progress | `68e475d`     |
-| simulation    | `slice/simulation`    | `worktrees/slice-simulation`    | agent-sim-1     | in_progress | `6b86aa9`     |
+| Slice         | Branch                | Worktree                        | Owner           | Status | Latest Commit |
+| ------------- | --------------------- | ------------------------------- | --------------- | ------ | ------------- |
+| runtime-shell | `slice/runtime-shell` | `worktrees/slice-runtime-shell` | agent-runtime-1 | review | `66a9560`     |
+| url-state     | `slice/url-state`     | `worktrees/slice-url-state`     | agent-url-1     | review | `4da2c8b`     |
+| ui-controls   | `slice/ui-controls`   | `worktrees/slice-ui-controls`   | agent-ui-1      | review | `7b7e3eb`     |
+| visualization | `slice/visualization` | `worktrees/slice-visualization` | agent-viz-1     | review | `c6f2363`     |
+| data-loading  | `slice/data-loading`  | `worktrees/slice-data-loading`  | agent-data-1    | review | `68e475d`     |
+| simulation    | `slice/simulation`    | `worktrees/slice-simulation`    | agent-sim-1     | review | `6b86aa9`     |
 
 ## Assignment Rule
 
