@@ -11,14 +11,14 @@ Last updated: 2026-03-08
 
 ## Slice Snapshot
 
-| Slice         | Branch                | Worktree                        | Owner           | Status | Latest Commit |
-| ------------- | --------------------- | ------------------------------- | --------------- | ------ | ------------- |
-| runtime-shell | `slice/runtime-shell` | `worktrees/slice-runtime-shell` | agent-runtime-1 | review | `66a9560`     |
-| url-state     | `slice/url-state`     | `worktrees/slice-url-state`     | agent-url-1     | review | `4da2c8b`     |
-| ui-controls   | `slice/ui-controls`   | `worktrees/slice-ui-controls`   | agent-ui-1      | review | `7b7e3eb`     |
-| visualization | `slice/visualization` | `worktrees/slice-visualization` | agent-viz-1     | review | `c6f2363`     |
-| data-loading  | `slice/data-loading`  | `worktrees/slice-data-loading`  | agent-data-1    | review | `68e475d`     |
-| simulation    | `slice/simulation`    | `worktrees/slice-simulation`    | agent-sim-1     | review | `6b86aa9`     |
+| Slice         | Branch                | Worktree                        | Owner        | Status      | Latest Commit |
+| ------------- | --------------------- | ------------------------------- | ------------ | ----------- | ------------- |
+| runtime-shell | `slice/runtime-shell` | `worktrees/slice-runtime-shell` | unassigned   | merged      | `8daa221`     |
+| url-state     | `slice/url-state`     | `worktrees/slice-url-state`     | unassigned   | merged      | `8daa221`     |
+| ui-controls   | `slice/ui-controls`   | `worktrees/slice-ui-controls`   | unassigned   | merged      | `8daa221`     |
+| visualization | `slice/visualization` | `worktrees/slice-visualization` | unassigned   | merged      | `8daa221`     |
+| data-loading  | `slice/data-loading`  | `worktrees/slice-data-loading`  | agent-data-2 | in_progress | `8daa221`     |
+| simulation    | `slice/simulation`    | `worktrees/slice-simulation`    | agent-sim-2  | in_progress | `8daa221`     |
 
 ## Assignment Rule
 
