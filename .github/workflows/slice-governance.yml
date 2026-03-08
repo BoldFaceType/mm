@@ -17,15 +17,25 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Validate board events
-        run: node scripts/validate-board.mjs
+        run: npm run validate:board
 
       - name: Check JS syntax
-        run: node scripts/check-js-syntax.mjs
+        run: npm run check:syntax
+
+      - name: Type-check JS scripts
+        run: npm run check:types
+
+      - name: Run unit tests
+        run: npm test
 
       - name: Check formatting
         run: |
           npx --yes prettier@3.5.3 --check "*.{js,html,md}" \
             "scripts/**/*.mjs" \
+            "tests/**/*.mjs" \
             "board/**/*.json" \
             ".github/workflows/*.yml"

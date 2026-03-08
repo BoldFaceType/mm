@@ -1,0 +1,32 @@
+{
+  "name": "repo",
+  "version": "1.0.0",
+  "description": "Matmul visualizations in 3D",
+  "main": "gui.js",
+  "directories": {
+    "example": "examples",
+    "lib": "lib",
+    "test": "tests"
+  },
+  "scripts": {
+    "validate:board": "node scripts/validate-board.mjs",
+    "check:syntax": "node scripts/check-js-syntax.mjs",
+    "check:types": "tsc -p tsconfig.scripts.json",
+    "test": "node --test tests/**/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BoldFaceType/mm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BoldFaceType/mm/issues"
+  },
+  "homepage": "https://github.com/BoldFaceType/mm#readme",
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "typescript": "^5.6.3"
+  }
+}
