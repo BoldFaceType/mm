@@ -97,6 +97,8 @@ export function initGui(params, callbacks, info) {
       init: childInit(p.init, left_child, left_parent), // p.init,
       url: p.url,
       expr: p.expr,
+      gguf_url: p.gguf_url,
+      gguf_tensor: p.gguf_tensor,
       min: p.min,
       max: p.max,
       dropout: p.dropout,
@@ -123,7 +125,7 @@ export function initGui(params, callbacks, info) {
         anim: viz.defaultAnim(),
         layout: layoutProto(pp, is_left),
       })
-      util.deleteProps(p, ['h', 'w', 'init', 'url', 'expr', 'min', 'max', 'dropout'])
+      util.deleteProps(p, ['h', 'w', 'init', 'url', 'expr', 'gguf_url', 'gguf_tensor', 'min', 'max', 'dropout'])
       addMatmulParams(g, path, ancestors)
     } else {
       util.updateProps(p, {
@@ -132,6 +134,8 @@ export function initGui(params, callbacks, info) {
         init: p === pp.left ? viz.leftLeaf(p).init : viz.rightLeaf(p).init,
         url: p === pp.left ? viz.leftLeaf(p).url : viz.rightLeaf(p).url,
         expr: p === pp.left ? viz.leftLeaf(p).expr : viz.rightLeaf(p).expr,
+        gguf_url: p === pp.left ? viz.leftLeaf(p).gguf_url : viz.rightLeaf(p).gguf_url,
+        gguf_tensor: p === pp.left ? viz.leftLeaf(p).gguf_tensor : viz.rightLeaf(p).gguf_tensor,
         min: -1,
         max: 1,
         dropout: 0,
@@ -176,6 +180,8 @@ export function initGui(params, callbacks, info) {
     addChoiceParam(g, 'init', viz.INITS, v => {
       findController(g, 'url').show(v == 'url')
       findController(g, 'expr').show(v == 'expr')
+      findController(g, 'gguf_url').show(v == 'gguf')
+      findController(g, 'gguf_tensor').show(v == 'gguf')
       findController(g, 'min').show(viz.useRange(v))
       findController(g, 'max').show(viz.useRange(v))
       findController(g, 'dropout').show(viz.useDropout(v))
@@ -192,6 +198,16 @@ export function initGui(params, callbacks, info) {
       p.expr = expr
       initObj()
     }).show(p.init == 'expr')
+    p.gguf_url ||= '' // temp BC
+    g.add(p, 'gguf_url').onFinishChange(gguf_url => {
+      p.gguf_url = gguf_url
+      initObj()
+    }).show(p.init == 'gguf')
+    p.gguf_tensor ||= '' // temp BC
+    g.add(p, 'gguf_tensor').onFinishChange(gguf_tensor => {
+      p.gguf_tensor = gguf_tensor
+      initObj()
+    }).show(p.init == 'gguf')
     addNumParam(g, 'min', -1.0, 1.0, initObj, path, path).show(viz.useRange(p.init))
     addNumParam(g, 'max', 0.0, 1.0, initObj, path, path).show(viz.useRange(p.init))
     addNumParam(g, 'dropout', 0.0, 1.0, initObj, path, path).show(viz.useDropout(p.init))

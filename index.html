@@ -827,6 +827,25 @@
       show()
     }
 
+    // Re-init when an async GGUF fetch completes
+    window.addEventListener('gguf-loaded', () => initObj())
+
+    // GGUF file drag-and-drop support
+    document.body.addEventListener('dragover', e => e.preventDefault())
+    document.body.addEventListener('drop', e => {
+      e.preventDefault()
+      const file = e.dataTransfer.files[0]
+      if (!file || !file.name.toLowerCase().endsWith('.gguf')) return
+      const reader = new FileReader()
+      reader.onload = ev => {
+        viz.registerLocalGGUFBuffer(file.name, ev.target.result)
+        params.left.init     = 'gguf'
+        params.left.gguf_url = 'local:' + file.name
+        initFromParams()
+      }
+      reader.readAsArrayBuffer(file)
+    })
+
     //
     // run
     //
