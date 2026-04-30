@@ -2,6 +2,7 @@
 
 import * as THREE from 'three'
 import * as util from './util.js'
+import { loadGGUF } from './GGUFLoader.js'
 
 //
 // shader
@@ -78,15 +79,91 @@ export const INIT_FUNCS = {
   diff: (i, j) => i == j ? 1 : i == j + 1 ? -1 : 0,
 }
 
-export const INITS = Object.keys(INIT_FUNCS).concat(['url', 'expr'])
+export const INITS = Object.keys(INIT_FUNCS).concat(['url', 'expr', 'gguf'])
 
 const USE_RANGE = ['rows', 'cols', 'row major', 'col major', 'uniform', 'gaussian']
 const USE_DROPOUT = USE_RANGE.concat(['pt linear'])
 
 export const useRange = name => USE_RANGE.indexOf(name) >= 0
 export const useDropout = name => USE_DROPOUT.indexOf(name) >= 0
+export const useGGUF = name => name === 'gguf'
 
 const DATA_CACHE = {}
+
+// --- GGUF support ---
+
+// ArrayBuffers registered from local file drag-and-drop (keyed by filename)
+const LOCAL_GGUF_BUFFERS = {}
+export function registerLocalGGUFBuffer(name, buffer) {
+  LOCAL_GGUF_BUFFERS[name] = buffer
+}
+
+// Cache of already-dequantized tensors: key = `${gguf_url}:${tensorName}`
+const GGUF_CACHE   = {}
+const GGUF_LOADING = new Set()
+
+// Expand a HuggingFace shorthand "org/repo/file.gguf" to a full HTTPS URL.
+// Full URLs and "local:" prefixes are returned unchanged.
+function normalizeHFUrl(url) {
+  if (!url) return url
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('local:')) {
+    return url
+  }
+  const parts = url.split('/')
+  if (parts.length >= 3) {
+    const [owner, repo, ...rest] = parts
+    return `https://huggingface.co/${owner}/${repo}/resolve/main/${rest.join('/')}`
+  }
+  return url
+}
+
+async function loadGGUFIntoCache(gguf_url, tensorName) {
+  const key = `${gguf_url}:${tensorName}`
+  if (GGUF_CACHE[key] || GGUF_LOADING.has(key)) return
+  GGUF_LOADING.add(key)
+  try {
+    let buffer
+    if (gguf_url.startsWith('local:')) {
+      buffer = LOCAL_GGUF_BUFFERS[gguf_url.slice(6)]
+      if (!buffer) {
+        console.log(`GGUFLoader: local buffer '${gguf_url.slice(6)}' not found`)
+        return
+      }
+    } else {
+      const fetchUrl = normalizeHFUrl(gguf_url)
+      console.log(`GGUFLoader: fetching ${fetchUrl}...`)
+      const resp = await fetch(fetchUrl)
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} from ${fetchUrl}`)
+      buffer = await resp.arrayBuffer()
+    }
+    const tensors = await loadGGUF(buffer)
+    const tensor  = tensors.get(tensorName)
+    if (!tensor) {
+      console.log(`GGUFLoader: tensor '${tensorName}' not found. Available: ${[...tensors.keys()].join(', ')}`)
+      return
+    }
+    GGUF_CACHE[key] = tensor
+    console.log(`GGUFLoader: loaded '${tensorName}' shape [${tensor.shape}] type ${tensor.quantType}`)
+    window.dispatchEvent(new CustomEvent('gguf-loaded', { detail: { url: gguf_url, tensorName } }))
+  } catch (e) {
+    console.log(`GGUFLoader: error loading '${gguf_url}': ${e.message}`)
+  } finally {
+    GGUF_LOADING.delete(key)
+  }
+}
+
+function tryGGUFInit(gguf_url, tensorName) {
+  if (!gguf_url || !tensorName) return undefined
+  const key    = `${gguf_url}:${tensorName}`
+  const cached = GGUF_CACHE[key]
+  if (cached) {
+    const { data, shape: [th, tw] } = cached
+    return (i, j) => data[(i % th) * tw + (j % tw)]
+  }
+  // Kick off async load; return placeholder zeros until data arrives
+  loadGGUFIntoCache(gguf_url, tensorName)
+  return () => 0
+}
 
 function tryLoadData(data_url) {
   if (DATA_CACHE[data_url]) {
@@ -126,14 +203,17 @@ function tryEvalInitExpr(expr) {
 }
 
 function getInitFunc(init_params) {
-  const { init, min, max, dropout, url, expr } = init_params
+  const { init, min, max, dropout, url, expr, gguf_url, gguf_tensor } = init_params
   const f = INIT_FUNCS[init] ||
     (init == 'url' && tryURLInit(url)) ||
-    (init == 'expr' && tryEvalInitExpr(expr))
+    (init == 'expr' && tryEvalInitExpr(expr)) ||
+    (init == 'gguf' && tryGGUFInit(gguf_url, gguf_tensor))
   if (!f) {
-    console.log(init == 'url' ?
-      `'can't load from URL '${url}'` :
-      `unrecognized initializer '${init}'`)
+    console.log(
+      init == 'url'  ? `can't load from URL '${url}'` :
+      init == 'gguf' ? `can't load GGUF: url='${gguf_url}' tensor='${gguf_tensor}'` :
+                       `unrecognized initializer '${init}'`
+    )
     return () => 0
   }
   const scaled = useRange(init) && (min != 0 || max != 1) ?
@@ -1869,6 +1949,8 @@ export const defaultLeft = () => ({
   w: default_dims.j,
   init: 'row major',
   url: '',
+  gguf_url: '',
+  gguf_tensor: '',
   min: -1,
   max: 1,
   dropout: 0,
@@ -1881,6 +1963,8 @@ export const defaultRight = () => ({
   w: default_dims.k,
   init: 'col major',
   url: '',
+  gguf_url: '',
+  gguf_tensor: '',
   min: -1,
   max: 1,
   dropout: 0,
