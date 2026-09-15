@@ -1,0 +1,242 @@
+{
+ "label": "after",
+ "observeOnly": false,
+ "observations": [
+  {
+   "id": "B0.0",
+   "title": "harness page loads with no uncaught errors",
+   "ok": true,
+   "detail": "no page errors",
+   "screenshot": "verification/screenshots/after/B0-harness.png",
+   "result": {
+    "softmax": [
+     0.7310585975646973,
+     0.2689414322376251
+    ],
+    "map": [
+     2,
+     2,
+     2,
+     2
+    ],
+    "q4_0Head": [
+     3.5,
+     -3.0625,
+     1.3125,
+     0
+    ],
+    "q4_0At16": [
+     -2.1875,
+     2.1875,
+     0,
+     0.4375
+    ],
+    "q4_0WorstRelError": 0
+   }
+  },
+  {
+   "id": "B0.1",
+   "title": "softmax([-1000,-1001]) is a distribution in-browser",
+   "ok": true
+  },
+  {
+   "id": "B0.2",
+   "title": "Array2D.map works in-browser",
+   "ok": true
+  },
+  {
+   "id": "B0.3",
+   "title": "Q4_0 decodes to the reference values in-browser",
+   "ok": true
+  },
+  {
+   "id": "B1.0",
+   "title": "default scene renders",
+   "ok": true,
+   "detail": "canvas present, no page errors",
+   "screenshot": "verification/screenshots/after/B1-default-scene.png"
+  },
+  {
+   "id": "B2.0",
+   "title": "dropping a .gguf opens a tensor picker",
+   "ok": true,
+   "detail": "open=true, 8 rows — 8 tensors, 8 mappable — click one to load it",
+   "screenshot": "verification/screenshots/after/B2-tensor-picker.png",
+   "picker": {
+    "present": true,
+    "open": true,
+    "rows": [
+     {
+      "cells": [
+       "test.f32",
+       "[4 x 256]",
+       "F32",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     },
+     {
+      "cells": [
+       "test.f16",
+       "[4 x 256]",
+       "F16",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     },
+     {
+      "cells": [
+       "test.q4_0",
+       "[4 x 256]",
+       "Q4_0",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     },
+     {
+      "cells": [
+       "test.q4_1",
+       "[4 x 256]",
+       "Q4_1",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     },
+     {
+      "cells": [
+       "test.q5_0",
+       "[4 x 256]",
+       "Q5_0",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     },
+     {
+      "cells": [
+       "test.q5_1",
+       "[4 x 256]",
+       "Q5_1",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     },
+     {
+      "cells": [
+       "test.q8_0",
+       "[4 x 256]",
+       "Q8_0",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     },
+     {
+      "cells": [
+       "test.q6_k",
+       "[4 x 256]",
+       "Q6_K",
+       "4096 B",
+       ""
+      ],
+      "blocked": false
+     }
+    ],
+    "sub": "8 tensors, 8 mappable — click one to load it"
+   }
+  },
+  {
+   "id": "B2.1",
+   "title": "the picker lists every fixture tensor with its quant type",
+   "ok": true
+  },
+  {
+   "id": "B2.2",
+   "title": "the picker shows real dims, not a placeholder",
+   "ok": true
+  },
+  {
+   "id": "B3.0",
+   "title": "selecting a tensor loads it into an operand",
+   "ok": true,
+   "detail": "status: \"left: test.q4_0 [4 x 256] Q4_0\" | url: ?params=%7B%22expr%22%3A%22L+%40+R%22%2C%22name%22%3A%22L+%40+R%22%2C%22epilog%22%3A%22none%22%2C%22left%22%3A%7B%22name",
+   "screenshot": "verification/screenshots/after/B3-tensor-loaded.png",
+   "afterPick": {
+    "status": "left: test.q4_0 [4 x 256] Q4_0",
+    "statusClass": "show",
+    "pickerOpen": false,
+    "url": "?params=%7B%22expr%22%3A%22L+%40+R%22%2C%22name%22%3A%22L+%40+R%22%2C%22epilog%22%3A%22none%22%2C%22left%22%3A%7B%22name%22%3A%22L%22%2C%22matmul%22%3Afalse%2C%22h%22%3A4%2C%22w%22%3A256%2C%22init%22%3A%22gguf%22%2C%22url%22%3A%22%22%2C%22gguf_url%22%3A%22local%3Afixtures.gguf%22%2C%22gguf_tensor%22%3A%22test.q4_0%22%2C%22gguf_row0%22%3A0%2C%22gguf_col0%22%3A0%2C%22gguf_transpose%22%3Afalse%2C%22min%22%3A-1%2C%22max%22%3A1%2C%22dropout%22%3A0%2C%22expr%22%3A%22%22%7D%2C%22right%22%3A%7B%22name%22%3A%22R%22%2C%22matmul%22%3Afalse%2C%22h%22%3A256%2C%22w%22%3A32%2C%22init%22%3A%22col+major%22%2C%22url%22%3A%22%22%2C%22gguf_url%22%3A%22%22%2C%22gguf_tensor%22%3A%22%22%2C%22gguf_row0%22%3A0%2C%22gguf_col0%22%3A0%2C%22gguf_transpose%22%3Afalse%2C%22min%22%3A-1%2C%22max%22%3A1%2C%22dropout%22%3A0%2C%22expr%22%3A%22%22%7D%2C%22anim%22%3A%7B%22fuse%22%3A%22none%22%2C%22speed%22%3A20%2C%22hide+inputs%22%3Afalse%2C%22alg%22%3A%22none%22%2C%22spin%22%3A0%7D%2C%22block%22%3A%7B%22i+blocks%22%3A1%2C%22k+blocks%22%3A1%2C%22j+blocks%22%3A1%7D%2C%22layout%22%3A%7B%22scheme%22%3A%22blocks%22%2C%22gap%22%3A4%2C%22scatter%22%3A0%2C%22molecule%22%3A1%2C%22blast%22%3A0%2C%22polarity%22%3A%22negative%22%2C%22left+placement%22%3A%22left%22%2C%22right+placement%22%3A%22top%22%2C%22result+placement%22%3A%22front%22%7D%2C%22deco%22%3A%7B%22legends%22%3A6%2C%22shape%22%3Atrue%2C%22spotlight%22%3A2%2C%22row+guides%22%3A0.6%2C%22flow+guides%22%3A0.5%2C%22lens+size%22%3A0.5%2C%22magnification%22%3A7%2C%22interior+spotlight%22%3Afalse%2C%22axes%22%3Afalse%7D%2C%22viz%22%3A%7B%22sensitivity%22%3A%22global%22%2C%22min+size%22%3A0.2%2C%22min+light%22%3A0.4%2C%22max+light%22%3A0.7%2C%22elem+scale%22%3A1.25%2C%22zero+hue%22%3A0.77%2C%22hue+gap%22%3A0.74%2C%22hue+spread%22%3A0.04%7D%2C%22diag%22%3A%7B%22url%22%3A%22%22%7D%2C%22cam%22%3A%7B%22x%22%3A-128.41025641025638%2C%22y%22%3A128.4102564102564%2C%22z%22%3A128.4102564102564%2C%22target%22%3A%7B%22x%22%3A0%2C%22y%22%3A0%2C%22z%22%3A0%7D%7D%7D"
+   }
+  },
+  {
+   "id": "B3.1",
+   "title": "the picker closes and the URL records the selection",
+   "ok": true
+  },
+  {
+   "id": "B4.0",
+   "title": "an undecodable tensor is listed and blocked with a reason",
+   "ok": true,
+   "detail": "[{\"name\":\"good.q8_0\",\"blocked\":false,\"why\":\"\"},{\"name\":\"bad.q4_k\",\"blocked\":true,\"why\":\"Q4_K not decodable\"}]",
+   "screenshot": "verification/screenshots/after/B4-unsupported-blocked.png",
+   "mixed": [
+    {
+     "name": "good.q8_0",
+     "blocked": false,
+     "why": ""
+    },
+    {
+     "name": "bad.q4_k",
+     "blocked": true,
+     "why": "Q4_K not decodable"
+    }
+   ]
+  },
+  {
+   "id": "B5.0",
+   "title": "a failing load reports an error state",
+   "ok": true,
+   "detail": "error: local file 'not-registered.gguf' is no longer available",
+   "screenshot": "verification/screenshots/after/B5-error-state.png",
+   "failState": {
+    "status": "error",
+    "error": "local file 'not-registered.gguf' is no longer available"
+   }
+  },
+  {
+   "id": "B6.0",
+   "title": "softmax over all-negative logits renders a distribution",
+   "ok": true,
+   "detail": "values [0.6439142823219299,0.23688282072544098,0.08714431524276733,0.032058604061603546] sum 1.0000000223517418",
+   "screenshot": "verification/screenshots/after/B6-softmax-epilog.png",
+   "softmaxCheck": {
+    "values": [
+     0.6439142823219299,
+     0.23688282072544098,
+     0.08714431524276733,
+     0.032058604061603546
+    ],
+    "sum": 1.0000000223517418
+   }
+  },
+  {
+   "id": "B7.0",
+   "title": "no uncaught page errors across the whole run",
+   "ok": true,
+   "detail": "clean",
+   "errors": [],
+   "consoleTail": [
+    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "log: HEY ratio 2.675213675213675"
+   ]
+  }
+ ]
+}

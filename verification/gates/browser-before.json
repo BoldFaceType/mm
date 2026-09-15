@@ -1,0 +1,142 @@
+{
+ "label": "before",
+ "observeOnly": true,
+ "observations": [
+  {
+   "id": "B0.0",
+   "title": "harness page loads with no uncaught errors",
+   "ok": null,
+   "detail": "no page errors",
+   "screenshot": "verification/screenshots/before/B0-harness.png",
+   "result": {
+    "softmax": [
+     0,
+     0
+    ],
+    "mapError": "n is not defined",
+    "q4_0Head": [
+     3.5,
+     -2.1875,
+     -3.0625,
+     2.1875
+    ],
+    "q4_0At16": [
+     1.3125,
+     -0.875,
+     -0.4375,
+     -1.75
+    ],
+    "q4_0WorstRelError": 3.510009765625
+   }
+  },
+  {
+   "id": "B0.1",
+   "title": "softmax([-1000,-1001]) is a distribution in-browser",
+   "ok": null,
+   "detail": "observed: got [0,0]"
+  },
+  {
+   "id": "B0.2",
+   "title": "Array2D.map works in-browser",
+   "ok": null,
+   "detail": "observed: threw: n is not defined"
+  },
+  {
+   "id": "B0.3",
+   "title": "Q4_0 decodes to the reference values in-browser",
+   "ok": null,
+   "detail": "observed: worst relative error 3.510009765625"
+  },
+  {
+   "id": "B1.0",
+   "title": "default scene renders",
+   "ok": null,
+   "detail": "canvas present, no page errors",
+   "screenshot": "verification/screenshots/before/B1-default-scene.png"
+  },
+  {
+   "id": "B2.0",
+   "title": "dropping a .gguf opens a tensor picker",
+   "ok": null,
+   "detail": "no #gguf-picker element in the page",
+   "screenshot": "verification/screenshots/before/B2-tensor-picker.png",
+   "picker": {
+    "present": false
+   }
+  },
+  {
+   "id": "B2.1",
+   "title": "the picker lists every fixture tensor with its quant type",
+   "ok": null,
+   "detail": "observed: Cannot read properties of undefined (reading 'map')"
+  },
+  {
+   "id": "B2.2",
+   "title": "the picker shows real dims, not a placeholder",
+   "ok": null,
+   "detail": "observed: Cannot read properties of undefined (reading 'find')"
+  },
+  {
+   "id": "B3.0",
+   "title": "selecting a tensor loads it into an operand",
+   "ok": null,
+   "detail": "status: \"\" | url: ",
+   "screenshot": "verification/screenshots/before/B3-tensor-loaded.png",
+   "afterPick": {
+    "status": "",
+    "statusClass": "",
+    "pickerOpen": false,
+    "url": ""
+   }
+  },
+  {
+   "id": "B3.1",
+   "title": "the picker closes and the URL records the selection",
+   "ok": null,
+   "detail": "observed: gguf_tensor is not in the URL state"
+  },
+  {
+   "id": "B4.0",
+   "title": "an undecodable tensor is listed and blocked with a reason",
+   "ok": null,
+   "detail": "[]",
+   "screenshot": "verification/screenshots/before/B4-unsupported-blocked.png",
+   "mixed": []
+  },
+  {
+   "id": "B5.0",
+   "title": "a failing load reports an error state",
+   "ok": null,
+   "detail": "viz not exposed on window (pre-fix tree, or export missing)",
+   "screenshot": "verification/screenshots/before/B5-error-state.png",
+   "failState": {
+    "unavailable": true
+   }
+  },
+  {
+   "id": "B6.0",
+   "title": "softmax over all-negative logits renders a distribution",
+   "ok": null,
+   "detail": "viz not exposed on window",
+   "screenshot": "verification/screenshots/before/B6-softmax-epilog.png",
+   "softmaxCheck": {
+    "unavailable": true
+   }
+  },
+  {
+   "id": "B7.0",
+   "title": "no uncaught page errors across the whole run",
+   "ok": null,
+   "detail": "clean",
+   "errors": [],
+   "consoleTail": [
+    "warning: [.WebGL-0x32940013fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x32940013fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x32940013fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x32940013fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "log: can't load GGUF: url='local:fixtures.gguf' tensor=''",
+    "log: can't load GGUF: url='local:mixed.gguf' tensor=''"
+   ]
+  }
+ ]
+}

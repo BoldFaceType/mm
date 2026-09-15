@@ -1,0 +1,266 @@
+
+> mm@0.2.0 test
+> node --import ./tests/helpers/register-hooks.mjs --test 'tests/unit/*.test.mjs'
+
+TAP version 13
+# Subtest: G1.1 listTensors reports every fixture tensor with its quant type
+ok 1 - G1.1 listTensors reports every fixture tensor with its quant type
+  ---
+  duration_ms: 3.222581
+  type: 'test'
+  ...
+# Subtest: G1.2 decoded values match the llama.cpp reference, element for element
+ok 2 - G1.2 decoded values match the llama.cpp reference, element for element
+  ---
+  duration_ms: 5.721909
+  type: 'test'
+  ...
+# Subtest: G1.3 decoded output is never all zeros for a non-degenerate tensor
+ok 3 - G1.3 decoded output is never all zeros for a non-degenerate tensor
+  ---
+  duration_ms: 1.157883
+  type: 'test'
+  ...
+# Subtest: G1.4 half-block ordering: first and seventeenth elements are distinct halves
+ok 4 - G1.4 half-block ordering: first and seventeenth elements are distinct halves
+  ---
+  duration_ms: 1.461582
+  type: 'test'
+  ...
+# Subtest: G4.1 openGGUF indexes without decoding anything
+ok 5 - G4.1 openGGUF indexes without decoding anything
+  ---
+  duration_ms: 3.627333
+  type: 'test'
+  ...
+# Subtest: G4.2 loadTensor decodes exactly one tensor
+ok 6 - G4.2 loadTensor decodes exactly one tensor
+  ---
+  duration_ms: 2.356025
+  type: 'test'
+  ...
+# Subtest: G4.3 a second selection reuses the index and decodes only the new tensor
+ok 7 - G4.3 a second selection reuses the index and decodes only the new tensor
+  ---
+  duration_ms: 1.290841
+  type: 'test'
+  ...
+# Subtest: G4.4 loadTensor values match the llama.cpp reference
+ok 8 - G4.4 loadTensor values match the llama.cpp reference
+  ---
+  duration_ms: 8.348134
+  type: 'test'
+  ...
+# Subtest: G4.5 an undecodable tensor does not poison the rest of the file
+ok 9 - G4.5 an undecodable tensor does not poison the rest of the file
+  ---
+  duration_ms: 1.508738
+  type: 'test'
+  ...
+# Subtest: G4.6 an unknown tensor name throws and names what is available
+ok 10 - G4.6 an unknown tensor name throws and names what is available
+  ---
+  duration_ms: 0.441128
+  type: 'test'
+  ...
+# Subtest: G4.7 the decoded-memory budget is enforced before allocation
+ok 11 - G4.7 the decoded-memory budget is enforced before allocation
+  ---
+  duration_ms: 0.826204
+  type: 'test'
+  ...
+# Subtest: G4.8 loadTensor validates bounds on the tensor it is asked for
+ok 12 - G4.8 loadTensor validates bounds on the tensor it is asked for
+  ---
+  duration_ms: 0.553761
+  type: 'test'
+  ...
+# Subtest: G2.1 an unsupported quant type is rejected, not zero-filled
+ok 13 - G2.1 an unsupported quant type is rejected, not zero-filled
+  ---
+  duration_ms: 2.10112
+  type: 'test'
+  ...
+# Subtest: G2.2 an unsupported type is still listed, flagged as undecodable
+ok 14 - G2.2 an unsupported type is still listed, flagged as undecodable
+  ---
+  duration_ms: 0.581545
+  type: 'test'
+  ...
+# Subtest: G2.3 every supported fixture tensor is listed as supported
+ok 15 - G2.3 every supported fixture tensor is listed as supported
+  ---
+  duration_ms: 0.621799
+  type: 'test'
+  ...
+# Subtest: G2.4 a truncated data section is rejected before any decode
+ok 16 - G2.4 a truncated data section is rejected before any decode
+  ---
+  duration_ms: 0.653204
+  type: 'test'
+  ...
+# Subtest: G2.5 a non-GGUF buffer is rejected with a clear message
+ok 17 - G2.5 a non-GGUF buffer is rejected with a clear message
+  ---
+  duration_ms: 0.348006
+  type: 'test'
+  ...
+# Subtest: G2.6 rank-3 tensors are reported with their full dims
+ok 18 - G2.6 rank-3 tensors are reported with their full dims
+  ---
+  duration_ms: 1.840754
+  type: 'test'
+  ...
+# Subtest: G6.1 a tensor moves idle -> loading -> ready
+ok 19 - G6.1 a tensor moves idle -> loading -> ready
+  ---
+  duration_ms: 5.270306
+  type: 'test'
+  ...
+# Subtest: G6.2 a failure lands in the error state with a usable message
+ok 20 - G6.2 a failure lands in the error state with a usable message
+  ---
+  duration_ms: 0.926204
+  type: 'test'
+  ...
+# Subtest: G6.3 a failed request leaves no cached tensor behind
+ok 21 - G6.3 a failed request leaves no cached tensor behind
+  ---
+  duration_ms: 0.558696
+  type: 'test'
+  ...
+# Subtest: G6.4 replacing a local file with the same name invalidates its cache
+ok 22 - G6.4 replacing a local file with the same name invalidates its cache
+  ---
+  duration_ms: 1.28186
+  type: 'test'
+  ...
+# Subtest: G6.5 re-registering identical bytes does not invalidate the cache
+ok 23 - G6.5 re-registering identical bytes does not invalidate the cache
+  ---
+  duration_ms: 0.831855
+  type: 'test'
+  ...
+# Subtest: G6.6 an older in-flight request reports itself stale
+ok 24 - G6.6 an older in-flight request reports itself stale
+  ---
+  duration_ms: 0.740795
+  type: 'test'
+  ...
+# Subtest: G6.7 the newest request wins regardless of completion order
+ok 25 - G6.7 the newest request wins regardless of completion order
+  ---
+  duration_ms: 0.926383
+  type: 'test'
+  ...
+# Subtest: G6.8 state is tracked per tensor, not per file
+ok 26 - G6.8 state is tracked per tensor, not per file
+  ---
+  duration_ms: 1.800851
+  type: 'test'
+  ...
+# Subtest: G3.1 softmax is shift-invariant for extreme negative logits
+ok 27 - G3.1 softmax is shift-invariant for extreme negative logits
+  ---
+  duration_ms: 1.389111
+  type: 'test'
+  ...
+# Subtest: G3.2 softmax rows sum to 1
+ok 28 - G3.2 softmax rows sum to 1
+  ---
+  duration_ms: 0.446848
+  type: 'test'
+  ...
+# Subtest: G3.3 softmax agrees with the shifted-exponential definition
+ok 29 - G3.3 softmax agrees with the shifted-exponential definition
+  ---
+  duration_ms: 0.308144
+  type: 'test'
+  ...
+# Subtest: G3.4 softmax of a uniform row is uniform
+ok 30 - G3.4 softmax of a uniform row is uniform
+  ---
+  duration_ms: 0.257007
+  type: 'test'
+  ...
+# Subtest: G3.5 Array2D.map returns a mapped array of the same shape
+ok 31 - G3.5 Array2D.map returns a mapped array of the same shape
+  ---
+  duration_ms: 1.669793
+  type: 'test'
+  ...
+# Subtest: G3.6 Array2D.map does not mutate the source
+ok 32 - G3.6 Array2D.map does not mutate the source
+  ---
+  duration_ms: 1.468246
+  type: 'test'
+  ...
+# Subtest: G3.7 Array2D.map handles the degenerate 0-element case
+ok 33 - G3.7 Array2D.map handles the degenerate 0-element case
+  ---
+  duration_ms: 0.233548
+  type: 'test'
+  ...
+# Subtest: G5.1 an exact-fit crop reproduces the tensor
+ok 34 - G5.1 an exact-fit crop reproduces the tensor
+  ---
+  duration_ms: 2.656321
+  type: 'test'
+  ...
+# Subtest: G5.2 a smaller matrix takes the top-left crop, not a fold
+ok 35 - G5.2 a smaller matrix takes the top-left crop, not a fold
+  ---
+  duration_ms: 0.353802
+  type: 'test'
+  ...
+# Subtest: G5.3 the crop origin selects a sub-block
+ok 36 - G5.3 the crop origin selects a sub-block
+  ---
+  duration_ms: 0.236286
+  type: 'test'
+  ...
+# Subtest: G5.4 reading past the tensor yields 0, never a wrapped value
+ok 37 - G5.4 reading past the tensor yields 0, never a wrapped value
+  ---
+  duration_ms: 1.786149
+  type: 'test'
+  ...
+# Subtest: G5.5 out-of-range reads are reported, not silent
+ok 38 - G5.5 out-of-range reads are reported, not silent
+  ---
+  duration_ms: 0.285943
+  type: 'test'
+  ...
+# Subtest: G5.6 transpose swaps the axes
+ok 39 - G5.6 transpose swaps the axes
+  ---
+  duration_ms: 0.156461
+  type: 'test'
+  ...
+# Subtest: G5.7 transpose composes with the crop origin
+ok 40 - G5.7 transpose composes with the crop origin
+  ---
+  duration_ms: 0.300556
+  type: 'test'
+  ...
+# Subtest: G5.8 a negative or non-integer origin is clamped to a valid one
+ok 41 - G5.8 a negative or non-integer origin is clamped to a valid one
+  ---
+  duration_ms: 0.210684
+  type: 'test'
+  ...
+# Subtest: G5.9 the init function exposes the source extent it was built from
+ok 42 - G5.9 the init function exposes the source extent it was built from
+  ---
+  duration_ms: 0.333276
+  type: 'test'
+  ...
+1..42
+# tests 42
+# suites 0
+# pass 42
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1248.560287

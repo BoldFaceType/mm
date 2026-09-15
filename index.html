@@ -1021,12 +1021,31 @@
       show()
     }
 
-    // Re-init when an async GGUF decode completes
-    window.addEventListener('gguf-loaded', () => initObj())
+    // Re-init when an async GGUF decode completes, and surface load state for
+    // loads that did not come from the picker (a gguf_url typed into the GUI,
+    // or restored from the URL).
+    window.addEventListener('gguf-loaded', e => {
+      if (!e.detail || !e.detail.stale) initObj()
+    })
+
+    window.addEventListener('gguf-state', e => {
+      const { tensorName, status, error } = e.detail
+      if (status === 'error') {
+        ggufStatus(`could not load ${tensorName}: ${error}`, 'error')
+      } else if (status === 'loading') {
+        ggufStatus(`loading ${tensorName}...`)
+      } else if (status === 'ready') {
+        ggufStatus('')
+      }
+    })
 
     //
     // GGUF import: drop a file, pick a tensor, map it into an operand
     //
+
+    // Debug/verification handle: the browser gates in tests/browser drive the
+    // real page and need to call into the same module instance it is using.
+    window.__mmviz = viz
 
     const MAX_MATRIX_DIM = 1024   // matches the h/w GUI range
 
@@ -1116,13 +1135,28 @@
         `${rows.length} shown / ${pickerState.tensors.length} tensors, ${usable} mappable`
     }
 
-    function choose(t) {
+    // Decode first, commit second. The scene is only rebuilt once the tensor is
+    // actually in hand, so a slow or failing load leaves the previous valid
+    // scene on screen instead of replacing it with placeholder zeros.
+    async function choose(t) {
       const side = operandEl.value === 'right' ? 'right' : 'left'
       const leaf = params[side]
+      const source = pickerState.source
       const [th, tw] = t.shape
 
+      closePicker()
+      ggufStatus(`decoding ${t.name} [${th} x ${tw}] ${t.quantType}...`)
+
+      const result = await viz.requestGGUFTensor(source, t.name)
+
+      if (result.stale) return          // a newer selection already won
+      if (result.status === viz.GGUF_STATUS.ERROR) {
+        ggufStatus(`could not load ${t.name}: ${result.error}`, 'error')
+        return                          // params untouched, scene untouched
+      }
+
       leaf.init           = 'gguf'
-      leaf.gguf_url       = pickerState.source
+      leaf.gguf_url       = source
       leaf.gguf_tensor    = t.name
       leaf.gguf_row0      = 0
       leaf.gguf_col0      = 0
@@ -1143,7 +1177,6 @@
         note = ` — showing the top-left ${leaf.h}x${leaf.w} of ${th}x${tw}`
       }
 
-      closePicker()
       ggufStatus(`${side}: ${t.name} [${th} x ${tw}] ${t.quantType}${note}`)
       initFromParams()
     }

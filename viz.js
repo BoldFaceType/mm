@@ -92,34 +92,112 @@ const DATA_CACHE = {}
 
 // --- GGUF support ---
 
-// ArrayBuffers registered from local file drag-and-drop (keyed by filename)
+/**
+ * Load states for one (source, tensor) pair.
+ *
+ * The point of naming these is that "not loaded yet" and "loaded, all zeros"
+ * used to look identical on screen: a pending load rendered placeholder zeros
+ * into the scene and failures went to the console only.
+ */
+export const GGUF_STATUS = {
+  IDLE:    'idle',
+  LOADING: 'loading',
+  READY:   'ready',
+  ERROR:   'error',
+}
+
+// Events are dispatched when running in a browser; the module is also imported
+// by the test suite under Node, where there is no window.
+const emit = (name, detail) => {
+  if (typeof window !== 'undefined' && window.dispatchEvent) {
+    window.dispatchEvent(new CustomEvent(name, { detail }))
+  }
+}
+
+// ArrayBuffers registered from local file drag-and-drop, keyed by filename.
 const LOCAL_GGUF_BUFFERS = {}
+
+// Per-source index (header + tensor directory, no decoded weights).
+// Holding this is what makes a second tensor selection cheap — no refetch,
+// no reparse, no redecode of anything else.
+const GGUF_INDEX = {}
+
+// Decoded tensors, keyed `${source}:${tensorName}`.
+const GGUF_CACHE = {}
+
+// Load state per cache key, and the in-flight promise for each.
+const GGUF_STATE   = {}
+const GGUF_INFLIGHT = {}
+
+// Monotonic request counter. A request that is not the newest when it settles
+// reports itself stale, so a slow load cannot overwrite a newer selection.
+let GGUF_SEQ = 0
+
+const cacheKey = (source, tensorName) => `${source}:${tensorName}`
+
+/** Current load state for one tensor: {status, error}. */
+export function ggufState(source, tensorName) {
+  return GGUF_STATE[cacheKey(source, tensorName)] ?? { status: GGUF_STATUS.IDLE, error: null }
+}
+
+function setState(source, tensorName, status, error = null) {
+  const key = cacheKey(source, tensorName)
+  GGUF_STATE[key] = { status, error }
+  emit('gguf-state', { url: source, tensorName, status, error })
+}
+
+/** Drop every index, decoded tensor and load state. Used by tests. */
+export function resetGGUFState() {
+  for (const k of Object.keys(LOCAL_GGUF_BUFFERS)) delete LOCAL_GGUF_BUFFERS[k]
+  for (const k of Object.keys(GGUF_INDEX))   delete GGUF_INDEX[k]
+  for (const k of Object.keys(GGUF_CACHE))   delete GGUF_CACHE[k]
+  for (const k of Object.keys(GGUF_STATE))   delete GGUF_STATE[k]
+  for (const k of Object.keys(GGUF_INFLIGHT)) delete GGUF_INFLIGHT[k]
+  GGUF_SEQ = 0
+}
+
+// Forget everything derived from one source. Called when a local file is
+// replaced: the source key is the filename, so without this a new file with an
+// old name keeps serving the previous file's decoded tensors.
+function invalidateSource(source) {
+  delete GGUF_INDEX[source]
+  const prefix = source + ':'
+  for (const key of Object.keys(GGUF_CACHE)) {
+    if (key.startsWith(prefix)) delete GGUF_CACHE[key]
+  }
+  for (const key of Object.keys(GGUF_STATE)) {
+    if (key.startsWith(prefix)) delete GGUF_STATE[key]
+  }
+  for (const key of Object.keys(GGUF_INFLIGHT)) {
+    if (key.startsWith(prefix)) delete GGUF_INFLIGHT[key]
+  }
+  emit('gguf-invalidated', { url: source })
+}
 
 /**
  * Register a dropped file's bytes and return the source string that identifies
  * it (`local:<name>`), which is what gguf_url is set to.
+ *
+ * Dropping a different file under a name already in use invalidates everything
+ * cached for that name.
  */
 export function registerLocalGGUFBuffer(name, buffer) {
+  const source = 'local:' + name
+  const previous = LOCAL_GGUF_BUFFERS[name]
+  if (previous !== undefined && previous !== buffer) {
+    invalidateSource(source)
+  }
   LOCAL_GGUF_BUFFERS[name] = buffer
-  return 'local:' + name
+  return source
 }
-
-// Per-source index (header + tensor directory, no decoded weights).
-// Keyed by source string; holding this is what makes a second tensor
-// selection cheap — no refetch, no reparse, no redecode of anything else.
-const GGUF_INDEX = {}
-
-// Cache of already-decoded tensors: key = `${gguf_url}:${tensorName}`
-const GGUF_CACHE   = {}
-const GGUF_LOADING = new Set()
 
 /**
  * Tensor directory for a source that has already been indexed.
  * Returns [] when the source has not been opened yet — callers use this to
  * populate a picker, not to trigger a load.
  */
-export function ggufTensorList(gguf_url) {
-  const entry = GGUF_INDEX[gguf_url]
+export function ggufTensorList(source) {
+  const entry = GGUF_INDEX[source]
   return entry ? entry.tensors : []
 }
 
@@ -141,19 +219,18 @@ function normalizeHFUrl(url) {
 // Fetch (or look up) the bytes for a source and index them. The buffer and
 // index are kept per source, so selecting a second tensor from the same file
 // costs one decode and nothing else.
-async function ensureGGUFIndex(gguf_url) {
-  const existing = GGUF_INDEX[gguf_url]
+async function ensureGGUFIndex(source) {
+  const existing = GGUF_INDEX[source]
   if (existing) return existing
 
   let buffer
-  if (gguf_url.startsWith('local:')) {
-    buffer = LOCAL_GGUF_BUFFERS[gguf_url.slice(6)]
+  if (source.startsWith('local:')) {
+    buffer = LOCAL_GGUF_BUFFERS[source.slice(6)]
     if (!buffer) {
-      throw new Error(`local file '${gguf_url.slice(6)}' is no longer available`)
+      throw new Error(`local file '${source.slice(6)}' is no longer available`)
     }
   } else {
-    const fetchUrl = normalizeHFUrl(gguf_url)
-    console.log(`GGUFLoader: fetching ${fetchUrl}...`)
+    const fetchUrl = normalizeHFUrl(source)
     const resp = await fetch(fetchUrl)
     if (!resp.ok) throw new Error(`HTTP ${resp.status} from ${fetchUrl}`)
     buffer = await resp.arrayBuffer()
@@ -161,34 +238,71 @@ async function ensureGGUFIndex(gguf_url) {
 
   const index = openGGUF(buffer)
   const entry = { index, tensors: index.tensors }
-  GGUF_INDEX[gguf_url] = entry
-  window.dispatchEvent(new CustomEvent('gguf-indexed', {
-    detail: { url: gguf_url, tensors: entry.tensors },
-  }))
+  GGUF_INDEX[source] = entry
+  emit('gguf-indexed', { url: source, tensors: entry.tensors })
   return entry
 }
 
-async function loadGGUFIntoCache(gguf_url, tensorName) {
-  const key = `${gguf_url}:${tensorName}`
-  if (GGUF_CACHE[key] || GGUF_LOADING.has(key)) return
-  GGUF_LOADING.add(key)
+/** Index a source without decoding a tensor — used by the file-drop picker. */
+export async function indexGGUFSource(source) {
+  const { tensors } = await ensureGGUFIndex(source)
+  return tensors
+}
+
+/**
+ * Ask for one tensor and settle into ready or error.
+ *
+ * Resolves (never rejects) with {status, error, stale, source, tensorName}.
+ * `stale` is true when a newer request was issued before this one settled; the
+ * caller uses it to decide whether to commit the result to the scene.
+ */
+export async function requestGGUFTensor(source, tensorName) {
+  const key = cacheKey(source, tensorName)
+  const seq = ++GGUF_SEQ
+
+  const settle = (status, error) => {
+    // Only the newest request may move the shared state; an older one that
+    // finishes late reports its outcome to its own caller and nothing else.
+    const stale = seq !== GGUF_SEQ
+    if (!stale) setState(source, tensorName, status, error)
+    if (status === GGUF_STATUS.READY) {
+      emit('gguf-loaded', { url: source, tensorName, stale })
+    }
+    return { status, error, stale, source, tensorName }
+  }
+
+  if (GGUF_CACHE[key]) return settle(GGUF_STATUS.READY, null)
+
+  setState(source, tensorName, GGUF_STATUS.LOADING)
+
+  if (!GGUF_INFLIGHT[key]) {
+    GGUF_INFLIGHT[key] = (async () => {
+      const { index } = await ensureGGUFIndex(source)
+      const tensor = loadTensor(index, tensorName)
+      GGUF_CACHE[key] = tensor
+      return tensor
+    })().finally(() => {
+      delete GGUF_INFLIGHT[key]
+    })
+  }
+
   try {
-    const { index } = await ensureGGUFIndex(gguf_url)
-    const tensor = loadTensor(index, tensorName)
-    GGUF_CACHE[key] = tensor
-    console.log(`GGUFLoader: decoded '${tensorName}' shape [${tensor.shape}] type ${tensor.quantType}`)
-    window.dispatchEvent(new CustomEvent('gguf-loaded', { detail: { url: gguf_url, tensorName } }))
+    await GGUF_INFLIGHT[key]
+    return settle(GGUF_STATUS.READY, null)
   } catch (e) {
-    console.log(`GGUFLoader: error loading '${gguf_url}': ${e.message}`)
-  } finally {
-    GGUF_LOADING.delete(key)
+    // Nothing is cached on failure, so the next request retries rather than
+    // serving a half-built result.
+    delete GGUF_CACHE[key]
+    return settle(GGUF_STATUS.ERROR, e.message)
   }
 }
 
-/** Index a source without decoding a tensor — used by the file-drop picker. */
-export async function indexGGUFSource(gguf_url) {
-  const { tensors } = await ensureGGUFIndex(gguf_url)
-  return tensors
+// Kick off a load for an init function that found nothing cached. Fire and
+// forget: the scene re-inits when the 'gguf-loaded' event lands.
+function loadGGUFIntoCache(source, tensorName) {
+  const key = cacheKey(source, tensorName)
+  if (GGUF_CACHE[key] || GGUF_INFLIGHT[key]) return
+  requestGGUFTensor(source, tensorName)
 }
 
 /**
