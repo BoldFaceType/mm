@@ -1,0 +1,218 @@
+
+> mm@0.2.0 test
+> node --import ./tests/helpers/register-hooks.mjs --test 'tests/unit/*.test.mjs'
+
+TAP version 13
+# Subtest: G1.1 listTensors reports every fixture tensor with its quant type
+ok 1 - G1.1 listTensors reports every fixture tensor with its quant type
+  ---
+  duration_ms: 3.166555
+  type: 'test'
+  ...
+# Subtest: G1.2 decoded values match the llama.cpp reference, element for element
+ok 2 - G1.2 decoded values match the llama.cpp reference, element for element
+  ---
+  duration_ms: 5.820614
+  type: 'test'
+  ...
+# Subtest: G1.3 decoded output is never all zeros for a non-degenerate tensor
+ok 3 - G1.3 decoded output is never all zeros for a non-degenerate tensor
+  ---
+  duration_ms: 1.090474
+  type: 'test'
+  ...
+# Subtest: G1.4 half-block ordering: first and seventeenth elements are distinct halves
+ok 4 - G1.4 half-block ordering: first and seventeenth elements are distinct halves
+  ---
+  duration_ms: 1.336554
+  type: 'test'
+  ...
+# Subtest: G4.1 openGGUF indexes without decoding anything
+ok 5 - G4.1 openGGUF indexes without decoding anything
+  ---
+  duration_ms: 3.831466
+  type: 'test'
+  ...
+# Subtest: G4.2 loadTensor decodes exactly one tensor
+ok 6 - G4.2 loadTensor decodes exactly one tensor
+  ---
+  duration_ms: 2.503445
+  type: 'test'
+  ...
+# Subtest: G4.3 a second selection reuses the index and decodes only the new tensor
+ok 7 - G4.3 a second selection reuses the index and decodes only the new tensor
+  ---
+  duration_ms: 1.32042
+  type: 'test'
+  ...
+# Subtest: G4.4 loadTensor values match the llama.cpp reference
+ok 8 - G4.4 loadTensor values match the llama.cpp reference
+  ---
+  duration_ms: 9.231749
+  type: 'test'
+  ...
+# Subtest: G4.5 an undecodable tensor does not poison the rest of the file
+ok 9 - G4.5 an undecodable tensor does not poison the rest of the file
+  ---
+  duration_ms: 1.519766
+  type: 'test'
+  ...
+# Subtest: G4.6 an unknown tensor name throws and names what is available
+ok 10 - G4.6 an unknown tensor name throws and names what is available
+  ---
+  duration_ms: 0.434821
+  type: 'test'
+  ...
+# Subtest: G4.7 the decoded-memory budget is enforced before allocation
+ok 11 - G4.7 the decoded-memory budget is enforced before allocation
+  ---
+  duration_ms: 0.756112
+  type: 'test'
+  ...
+# Subtest: G4.8 loadTensor validates bounds on the tensor it is asked for
+ok 12 - G4.8 loadTensor validates bounds on the tensor it is asked for
+  ---
+  duration_ms: 0.611973
+  type: 'test'
+  ...
+# Subtest: G2.1 an unsupported quant type is rejected, not zero-filled
+ok 13 - G2.1 an unsupported quant type is rejected, not zero-filled
+  ---
+  duration_ms: 1.909672
+  type: 'test'
+  ...
+# Subtest: G2.2 an unsupported type is still listed, flagged as undecodable
+ok 14 - G2.2 an unsupported type is still listed, flagged as undecodable
+  ---
+  duration_ms: 0.583257
+  type: 'test'
+  ...
+# Subtest: G2.3 every supported fixture tensor is listed as supported
+ok 15 - G2.3 every supported fixture tensor is listed as supported
+  ---
+  duration_ms: 0.53978
+  type: 'test'
+  ...
+# Subtest: G2.4 a truncated data section is rejected before any decode
+ok 16 - G2.4 a truncated data section is rejected before any decode
+  ---
+  duration_ms: 0.65327
+  type: 'test'
+  ...
+# Subtest: G2.5 a non-GGUF buffer is rejected with a clear message
+ok 17 - G2.5 a non-GGUF buffer is rejected with a clear message
+  ---
+  duration_ms: 0.282451
+  type: 'test'
+  ...
+# Subtest: G2.6 rank-3 tensors are reported with their full dims
+ok 18 - G2.6 rank-3 tensors are reported with their full dims
+  ---
+  duration_ms: 1.657735
+  type: 'test'
+  ...
+# Subtest: G3.1 softmax is shift-invariant for extreme negative logits
+ok 19 - G3.1 softmax is shift-invariant for extreme negative logits
+  ---
+  duration_ms: 1.531243
+  type: 'test'
+  ...
+# Subtest: G3.2 softmax rows sum to 1
+ok 20 - G3.2 softmax rows sum to 1
+  ---
+  duration_ms: 0.589097
+  type: 'test'
+  ...
+# Subtest: G3.3 softmax agrees with the shifted-exponential definition
+ok 21 - G3.3 softmax agrees with the shifted-exponential definition
+  ---
+  duration_ms: 0.32543
+  type: 'test'
+  ...
+# Subtest: G3.4 softmax of a uniform row is uniform
+ok 22 - G3.4 softmax of a uniform row is uniform
+  ---
+  duration_ms: 2.169408
+  type: 'test'
+  ...
+# Subtest: G3.5 Array2D.map returns a mapped array of the same shape
+ok 23 - G3.5 Array2D.map returns a mapped array of the same shape
+  ---
+  duration_ms: 0.291328
+  type: 'test'
+  ...
+# Subtest: G3.6 Array2D.map does not mutate the source
+ok 24 - G3.6 Array2D.map does not mutate the source
+  ---
+  duration_ms: 1.668632
+  type: 'test'
+  ...
+# Subtest: G3.7 Array2D.map handles the degenerate 0-element case
+ok 25 - G3.7 Array2D.map handles the degenerate 0-element case
+  ---
+  duration_ms: 0.258199
+  type: 'test'
+  ...
+# Subtest: G5.1 an exact-fit crop reproduces the tensor
+ok 26 - G5.1 an exact-fit crop reproduces the tensor
+  ---
+  duration_ms: 2.453172
+  type: 'test'
+  ...
+# Subtest: G5.2 a smaller matrix takes the top-left crop, not a fold
+ok 27 - G5.2 a smaller matrix takes the top-left crop, not a fold
+  ---
+  duration_ms: 0.264078
+  type: 'test'
+  ...
+# Subtest: G5.3 the crop origin selects a sub-block
+ok 28 - G5.3 the crop origin selects a sub-block
+  ---
+  duration_ms: 0.209788
+  type: 'test'
+  ...
+# Subtest: G5.4 reading past the tensor yields 0, never a wrapped value
+ok 29 - G5.4 reading past the tensor yields 0, never a wrapped value
+  ---
+  duration_ms: 1.60746
+  type: 'test'
+  ...
+# Subtest: G5.5 out-of-range reads are reported, not silent
+ok 30 - G5.5 out-of-range reads are reported, not silent
+  ---
+  duration_ms: 0.269455
+  type: 'test'
+  ...
+# Subtest: G5.6 transpose swaps the axes
+ok 31 - G5.6 transpose swaps the axes
+  ---
+  duration_ms: 0.238322
+  type: 'test'
+  ...
+# Subtest: G5.7 transpose composes with the crop origin
+ok 32 - G5.7 transpose composes with the crop origin
+  ---
+  duration_ms: 0.266653
+  type: 'test'
+  ...
+# Subtest: G5.8 a negative or non-integer origin is clamped to a valid one
+ok 33 - G5.8 a negative or non-integer origin is clamped to a valid one
+  ---
+  duration_ms: 0.222951
+  type: 'test'
+  ...
+# Subtest: G5.9 the init function exposes the source extent it was built from
+ok 34 - G5.9 the init function exposes the source extent it was built from
+  ---
+  duration_ms: 0.433989
+  type: 'test'
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1040.242136

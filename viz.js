@@ -94,8 +94,14 @@ const DATA_CACHE = {}
 
 // ArrayBuffers registered from local file drag-and-drop (keyed by filename)
 const LOCAL_GGUF_BUFFERS = {}
+
+/**
+ * Register a dropped file's bytes and return the source string that identifies
+ * it (`local:<name>`), which is what gguf_url is set to.
+ */
 export function registerLocalGGUFBuffer(name, buffer) {
   LOCAL_GGUF_BUFFERS[name] = buffer
+  return 'local:' + name
 }
 
 // Per-source index (header + tensor directory, no decoded weights).
@@ -185,13 +191,61 @@ export async function indexGGUFSource(gguf_url) {
   return tensors
 }
 
-function tryGGUFInit(gguf_url, tensorName) {
+/**
+ * Build an init function that reads a bounded window of a decoded tensor.
+ *
+ * The previous behaviour was `data[(i % th) * tw + (j % tw)]`: a matrix
+ * smaller than the tensor showed a fold of it, a matrix larger than the tensor
+ * showed it tiled, and both looked like real weights. Here the window is
+ * explicit — origin plus the matrix extent — and anything outside the tensor
+ * reads 0 and is counted, so the caller can say so.
+ *
+ * @param {{data: Float32Array, shape: [number, number]}} tensor
+ * @param {{row0?: number, col0?: number, transpose?: boolean}} opts
+ */
+export function ggufCropInit(tensor, opts = {}) {
+  const { data } = tensor
+  const [th, tw] = tensor.shape
+  const transpose = !!opts.transpose
+
+  // Extent of the view the user is indexing into.
+  const vh = transpose ? tw : th
+  const vw = transpose ? th : tw
+
+  const clamp = (x, hi) => {
+    const v = Math.floor(Number(x) || 0)
+    return v < 0 ? 0 : v > hi ? hi : v
+  }
+  const row0 = clamp(opts.row0, Math.max(0, vh - 1))
+  const col0 = clamp(opts.col0, Math.max(0, vw - 1))
+
+  const init = (i, j) => {
+    const r = row0 + i
+    const c = col0 + j
+    if (r >= vh || c >= vw) {
+      init.outOfRange++
+      return 0
+    }
+    return transpose ? data[c * tw + r] : data[r * tw + c]
+  }
+
+  init.outOfRange = 0
+  init.sourceShape = [th, tw]
+  init.viewShape = [vh, vw]
+  init.origin = [row0, col0]
+  return init
+}
+
+function tryGGUFInit(gguf_url, tensorName, params) {
   if (!gguf_url || !tensorName) return undefined
   const key    = `${gguf_url}:${tensorName}`
   const cached = GGUF_CACHE[key]
   if (cached) {
-    const { data, shape: [th, tw] } = cached
-    return (i, j) => data[(i % th) * tw + (j % tw)]
+    return ggufCropInit(cached, {
+      row0: params.gguf_row0,
+      col0: params.gguf_col0,
+      transpose: params.gguf_transpose,
+    })
   }
   // Kick off async load; return placeholder zeros until data arrives
   loadGGUFIntoCache(gguf_url, tensorName)
@@ -240,7 +294,7 @@ function getInitFunc(init_params) {
   const f = INIT_FUNCS[init] ||
     (init == 'url' && tryURLInit(url)) ||
     (init == 'expr' && tryEvalInitExpr(expr)) ||
-    (init == 'gguf' && tryGGUFInit(gguf_url, gguf_tensor))
+    (init == 'gguf' && tryGGUFInit(gguf_url, gguf_tensor, init_params))
   if (!f) {
     console.log(
       init == 'url'  ? `can't load from URL '${url}'` :
@@ -1990,6 +2044,9 @@ export const defaultLeft = () => ({
   url: '',
   gguf_url: '',
   gguf_tensor: '',
+  gguf_row0: 0,
+  gguf_col0: 0,
+  gguf_transpose: false,
   min: -1,
   max: 1,
   dropout: 0,
@@ -2004,6 +2061,9 @@ export const defaultRight = () => ({
   url: '',
   gguf_url: '',
   gguf_tensor: '',
+  gguf_row0: 0,
+  gguf_col0: 0,
+  gguf_transpose: false,
   min: -1,
   max: 1,
   dropout: 0,
