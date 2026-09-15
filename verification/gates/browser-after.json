@@ -7,7 +7,7 @@
    "title": "harness page loads with no uncaught errors",
    "ok": true,
    "detail": "no page errors",
-   "screenshot": "verification/screenshots/after/B0-harness.png",
+   "screenshot": "verification\\screenshots\\after\\B0-harness.png",
    "result": {
     "softmax": [
      0.7310585975646973,
@@ -54,14 +54,14 @@
    "title": "default scene renders",
    "ok": true,
    "detail": "canvas present, no page errors",
-   "screenshot": "verification/screenshots/after/B1-default-scene.png"
+   "screenshot": "verification\\screenshots\\after\\B1-default-scene.png"
   },
   {
    "id": "B2.0",
    "title": "dropping a .gguf opens a tensor picker",
    "ok": true,
    "detail": "open=true, 8 rows — 8 tensors, 8 mappable — click one to load it",
-   "screenshot": "verification/screenshots/after/B2-tensor-picker.png",
+   "screenshot": "verification\\screenshots\\after\\B2-tensor-picker.png",
    "picker": {
     "present": true,
     "open": true,
@@ -165,7 +165,7 @@
    "title": "selecting a tensor loads it into an operand",
    "ok": true,
    "detail": "status: \"left: test.q4_0 [4 x 256] Q4_0\" | url: ?params=%7B%22expr%22%3A%22L+%40+R%22%2C%22name%22%3A%22L+%40+R%22%2C%22epilog%22%3A%22none%22%2C%22left%22%3A%7B%22name",
-   "screenshot": "verification/screenshots/after/B3-tensor-loaded.png",
+   "screenshot": "verification\\screenshots\\after\\B3-tensor-loaded.png",
    "afterPick": {
     "status": "left: test.q4_0 [4 x 256] Q4_0",
     "statusClass": "show",
@@ -183,7 +183,7 @@
    "title": "an undecodable tensor is listed and blocked with a reason",
    "ok": true,
    "detail": "[{\"name\":\"good.q8_0\",\"blocked\":false,\"why\":\"\"},{\"name\":\"bad.q4_k\",\"blocked\":true,\"why\":\"Q4_K not decodable\"}]",
-   "screenshot": "verification/screenshots/after/B4-unsupported-blocked.png",
+   "screenshot": "verification\\screenshots\\after\\B4-unsupported-blocked.png",
    "mixed": [
     {
      "name": "good.q8_0",
@@ -202,7 +202,7 @@
    "title": "a failing load reports an error state",
    "ok": true,
    "detail": "error: local file 'not-registered.gguf' is no longer available",
-   "screenshot": "verification/screenshots/after/B5-error-state.png",
+   "screenshot": "verification\\screenshots\\after\\B5-error-state.png",
    "failState": {
     "status": "error",
     "error": "local file 'not-registered.gguf' is no longer available"
@@ -213,7 +213,7 @@
    "title": "softmax over all-negative logits renders a distribution",
    "ok": true,
    "detail": "values [0.6439142823219299,0.23688282072544098,0.08714431524276733,0.032058604061603546] sum 1.0000000223517418",
-   "screenshot": "verification/screenshots/after/B6-softmax-epilog.png",
+   "screenshot": "verification\\screenshots\\after\\B6-softmax-epilog.png",
    "softmaxCheck": {
     "values": [
      0.6439142823219299,
@@ -231,10 +231,10 @@
    "detail": "clean",
    "errors": [],
    "consoleTail": [
-    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "warning: [.WebGL-0x101c00140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "warning: [.WebGL-0x5ab400199000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x5ab400199000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x5ab400199000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x5ab400199000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
     "log: HEY ratio 2.675213675213675"
    ]
   }
