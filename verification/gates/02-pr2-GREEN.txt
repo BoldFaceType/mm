@@ -1,0 +1,116 @@
+
+> mm@0.2.0 test
+> node --import ./tests/helpers/register-hooks.mjs --test 'tests/unit/*.test.mjs'
+
+TAP version 13
+# Subtest: G1.1 listTensors reports every fixture tensor with its quant type
+ok 1 - G1.1 listTensors reports every fixture tensor with its quant type
+  ---
+  duration_ms: 3.149509
+  type: 'test'
+  ...
+# Subtest: G1.2 decoded values match the llama.cpp reference, element for element
+ok 2 - G1.2 decoded values match the llama.cpp reference, element for element
+  ---
+  duration_ms: 5.320499
+  type: 'test'
+  ...
+# Subtest: G1.3 decoded output is never all zeros for a non-degenerate tensor
+ok 3 - G1.3 decoded output is never all zeros for a non-degenerate tensor
+  ---
+  duration_ms: 1.101995
+  type: 'test'
+  ...
+# Subtest: G1.4 half-block ordering: first and seventeenth elements are distinct halves
+ok 4 - G1.4 half-block ordering: first and seventeenth elements are distinct halves
+  ---
+  duration_ms: 1.94326
+  type: 'test'
+  ...
+# Subtest: G2.1 an unsupported quant type is rejected, not zero-filled
+ok 5 - G2.1 an unsupported quant type is rejected, not zero-filled
+  ---
+  duration_ms: 2.176179
+  type: 'test'
+  ...
+# Subtest: G2.2 an unsupported type is still listed, flagged as undecodable
+ok 6 - G2.2 an unsupported type is still listed, flagged as undecodable
+  ---
+  duration_ms: 0.555163
+  type: 'test'
+  ...
+# Subtest: G2.3 every supported fixture tensor is listed as supported
+ok 7 - G2.3 every supported fixture tensor is listed as supported
+  ---
+  duration_ms: 0.575943
+  type: 'test'
+  ...
+# Subtest: G2.4 a truncated data section is rejected before any decode
+ok 8 - G2.4 a truncated data section is rejected before any decode
+  ---
+  duration_ms: 0.708571
+  type: 'test'
+  ...
+# Subtest: G2.5 a non-GGUF buffer is rejected with a clear message
+ok 9 - G2.5 a non-GGUF buffer is rejected with a clear message
+  ---
+  duration_ms: 0.321494
+  type: 'test'
+  ...
+# Subtest: G2.6 rank-3 tensors are reported with their full dims
+ok 10 - G2.6 rank-3 tensors are reported with their full dims
+  ---
+  duration_ms: 1.856146
+  type: 'test'
+  ...
+# Subtest: G3.1 softmax is shift-invariant for extreme negative logits
+ok 11 - G3.1 softmax is shift-invariant for extreme negative logits
+  ---
+  duration_ms: 2.714667
+  type: 'test'
+  ...
+# Subtest: G3.2 softmax rows sum to 1
+ok 12 - G3.2 softmax rows sum to 1
+  ---
+  duration_ms: 0.491546
+  type: 'test'
+  ...
+# Subtest: G3.3 softmax agrees with the shifted-exponential definition
+ok 13 - G3.3 softmax agrees with the shifted-exponential definition
+  ---
+  duration_ms: 0.246792
+  type: 'test'
+  ...
+# Subtest: G3.4 softmax of a uniform row is uniform
+ok 14 - G3.4 softmax of a uniform row is uniform
+  ---
+  duration_ms: 0.245179
+  type: 'test'
+  ...
+# Subtest: G3.5 Array2D.map returns a mapped array of the same shape
+ok 15 - G3.5 Array2D.map returns a mapped array of the same shape
+  ---
+  duration_ms: 0.261752
+  type: 'test'
+  ...
+# Subtest: G3.6 Array2D.map does not mutate the source
+ok 16 - G3.6 Array2D.map does not mutate the source
+  ---
+  duration_ms: 1.494492
+  type: 'test'
+  ...
+# Subtest: G3.7 Array2D.map handles the degenerate 0-element case
+ok 17 - G3.7 Array2D.map handles the degenerate 0-element case
+  ---
+  duration_ms: 0.28497
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 596.968446

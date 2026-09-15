@@ -284,8 +284,13 @@ export const EPILOGS = [
 
 function softmax_(h, w, data, tril = false) {
 
+  // Seeded with -Infinity, not 0. Seeding with 0 makes the shift a no-op for
+  // any row whose entries are all negative: every exp() underflows, the
+  // denominator becomes 0, and 0/0 is written out as 0. Attention logits are
+  // routinely all-negative, so that row silently produced zeros instead of a
+  // distribution.
   const row_max = (ptr, w) => {
-    let x = 0
+    let x = -Infinity
     for (let j = 0; j < w; j++, ptr++) {
       x = Math.max(x, data[ptr])
     }
@@ -435,6 +440,7 @@ export class Array2D {
   }
 
   map(f) {
+    const n = this.h * this.w
     const data = new Float32Array(n)
     for (let ptr = 0; ptr < n; ptr++) {
       data[ptr] = f(this.data[ptr])
