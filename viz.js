@@ -2,7 +2,7 @@
 
 import * as THREE from 'three'
 import * as util from './util.js'
-import { loadGGUF } from './GGUFLoader.js'
+import { loadTensor, openGGUF } from './GGUFLoader.js'
 
 //
 // shader
@@ -98,9 +98,24 @@ export function registerLocalGGUFBuffer(name, buffer) {
   LOCAL_GGUF_BUFFERS[name] = buffer
 }
 
-// Cache of already-dequantized tensors: key = `${gguf_url}:${tensorName}`
+// Per-source index (header + tensor directory, no decoded weights).
+// Keyed by source string; holding this is what makes a second tensor
+// selection cheap — no refetch, no reparse, no redecode of anything else.
+const GGUF_INDEX = {}
+
+// Cache of already-decoded tensors: key = `${gguf_url}:${tensorName}`
 const GGUF_CACHE   = {}
 const GGUF_LOADING = new Set()
+
+/**
+ * Tensor directory for a source that has already been indexed.
+ * Returns [] when the source has not been opened yet — callers use this to
+ * populate a picker, not to trigger a load.
+ */
+export function ggufTensorList(gguf_url) {
+  const entry = GGUF_INDEX[gguf_url]
+  return entry ? entry.tensors : []
+}
 
 // Expand a HuggingFace shorthand "org/repo/file.gguf" to a full HTTPS URL.
 // Full URLs and "local:" prefixes are returned unchanged.
@@ -117,39 +132,57 @@ function normalizeHFUrl(url) {
   return url
 }
 
+// Fetch (or look up) the bytes for a source and index them. The buffer and
+// index are kept per source, so selecting a second tensor from the same file
+// costs one decode and nothing else.
+async function ensureGGUFIndex(gguf_url) {
+  const existing = GGUF_INDEX[gguf_url]
+  if (existing) return existing
+
+  let buffer
+  if (gguf_url.startsWith('local:')) {
+    buffer = LOCAL_GGUF_BUFFERS[gguf_url.slice(6)]
+    if (!buffer) {
+      throw new Error(`local file '${gguf_url.slice(6)}' is no longer available`)
+    }
+  } else {
+    const fetchUrl = normalizeHFUrl(gguf_url)
+    console.log(`GGUFLoader: fetching ${fetchUrl}...`)
+    const resp = await fetch(fetchUrl)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} from ${fetchUrl}`)
+    buffer = await resp.arrayBuffer()
+  }
+
+  const index = openGGUF(buffer)
+  const entry = { index, tensors: index.tensors }
+  GGUF_INDEX[gguf_url] = entry
+  window.dispatchEvent(new CustomEvent('gguf-indexed', {
+    detail: { url: gguf_url, tensors: entry.tensors },
+  }))
+  return entry
+}
+
 async function loadGGUFIntoCache(gguf_url, tensorName) {
   const key = `${gguf_url}:${tensorName}`
   if (GGUF_CACHE[key] || GGUF_LOADING.has(key)) return
   GGUF_LOADING.add(key)
   try {
-    let buffer
-    if (gguf_url.startsWith('local:')) {
-      buffer = LOCAL_GGUF_BUFFERS[gguf_url.slice(6)]
-      if (!buffer) {
-        console.log(`GGUFLoader: local buffer '${gguf_url.slice(6)}' not found`)
-        return
-      }
-    } else {
-      const fetchUrl = normalizeHFUrl(gguf_url)
-      console.log(`GGUFLoader: fetching ${fetchUrl}...`)
-      const resp = await fetch(fetchUrl)
-      if (!resp.ok) throw new Error(`HTTP ${resp.status} from ${fetchUrl}`)
-      buffer = await resp.arrayBuffer()
-    }
-    const tensors = await loadGGUF(buffer)
-    const tensor  = tensors.get(tensorName)
-    if (!tensor) {
-      console.log(`GGUFLoader: tensor '${tensorName}' not found. Available: ${[...tensors.keys()].join(', ')}`)
-      return
-    }
+    const { index } = await ensureGGUFIndex(gguf_url)
+    const tensor = loadTensor(index, tensorName)
     GGUF_CACHE[key] = tensor
-    console.log(`GGUFLoader: loaded '${tensorName}' shape [${tensor.shape}] type ${tensor.quantType}`)
+    console.log(`GGUFLoader: decoded '${tensorName}' shape [${tensor.shape}] type ${tensor.quantType}`)
     window.dispatchEvent(new CustomEvent('gguf-loaded', { detail: { url: gguf_url, tensorName } }))
   } catch (e) {
     console.log(`GGUFLoader: error loading '${gguf_url}': ${e.message}`)
   } finally {
     GGUF_LOADING.delete(key)
   }
+}
+
+/** Index a source without decoding a tensor — used by the file-drop picker. */
+export async function indexGGUFSource(gguf_url) {
+  const { tensors } = await ensureGGUFIndex(gguf_url)
+  return tensors
 }
 
 function tryGGUFInit(gguf_url, tensorName) {

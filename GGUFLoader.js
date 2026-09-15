@@ -389,6 +389,20 @@ function tensorByteSize(type, numel) {
   return (numel / spec.block) * spec.type_size
 }
 
+// Decode accounting, so tests can assert that selecting one tensor decodes one
+// tensor. Cheap enough to leave in; also the first thing worth looking at when
+// a load feels slow.
+let DECODE_STATS = { tensorsDecoded: 0, elementsDecoded: 0 }
+
+/** @returns {{tensorsDecoded: number, elementsDecoded: number}} */
+export function decodeStats() {
+  return { ...DECODE_STATS }
+}
+
+export function resetDecodeStats() {
+  DECODE_STATS = { tensorsDecoded: 0, elementsDecoded: 0 }
+}
+
 // Dispatch dequantization by type. Unsupported types throw; they are never
 // filled with zeros, because a zero-filled tensor is indistinguishable from
 // real data once it reaches the visualization.
@@ -400,6 +414,8 @@ function dequantize(bytes, type, n) {
       `Supported: ${SUPPORTED_TYPE_NAMES.join(', ')}`
     )
   }
+  DECODE_STATS.tensorsDecoded += 1
+  DECODE_STATS.elementsDecoded += n
   return spec.decode(bytes, n)
 }
 
@@ -469,11 +485,84 @@ export function listTensors(buffer) {
   })
 }
 
+/** Decoded-size ceiling for a single tensor, unless the caller raises it. */
+export const DEFAULT_MAX_DECODED_BYTES = 256 * 1024 * 1024
+
+/**
+ * Index a GGUF file: read the header, metadata and tensor directory, decode
+ * nothing. The returned index is reusable — hold it and call loadTensor() for
+ * each selection instead of re-parsing or re-fetching.
+ *
+ * @param {ArrayBuffer} buffer
+ * @returns {{
+ *   buffer: ArrayBuffer, metadata: object, alignment: number,
+ *   data_start: number, tensors: ReturnType<typeof listTensors>
+ * }}
+ */
+export function openGGUF(buffer) {
+  const { metadata, tensor_infos, data_start, alignment } = parseGGUFStructure(buffer)
+  const infos = new Map(tensor_infos.map(info => [info.name, info]))
+  return {
+    buffer,
+    metadata,
+    alignment,
+    data_start,
+    tensors: listTensors(buffer),
+    // Not part of the public shape; loadTensor() reads it.
+    _infos: infos,
+  }
+}
+
+/**
+ * Decode one tensor from an index produced by openGGUF().
+ *
+ * Only the requested tensor's bytes are read and only its elements are
+ * allocated, so an undecodable or oversized tensor elsewhere in the file is
+ * irrelevant to this call.
+ *
+ * @param {ReturnType<typeof openGGUF>} index
+ * @param {string} name
+ * @param {{maxDecodedBytes?: number}} [opts]
+ * @returns {{data: Float32Array, shape: [number,number], dims: number[],
+ *            rank: number, quantType: string, decodedBytes: number}}
+ */
+export function loadTensor(index, name, opts = {}) {
+  const info = index._infos.get(name)
+  if (!info) {
+    const available = [...index._infos.keys()]
+    const shown = available.slice(0, 12).join(', ')
+    const more = available.length > 12 ? `, ... (${available.length} total)` : ''
+    throw new Error(`GGUFLoader: tensor '${name}' not found. Available: ${shown}${more}`)
+  }
+
+  const maxDecodedBytes = opts.maxDecodedBytes ?? DEFAULT_MAX_DECODED_BYTES
+  const numel = info.dims.reduce((a, b) => a * b, 1)
+  const decodedBytes = numel * 4
+  if (decodedBytes > maxDecodedBytes) {
+    throw new Error(
+      `GGUFLoader: tensor '${name}' is too large to decode — it needs ${decodedBytes} bytes ` +
+      `of Float32 storage (${numel} elements), over the ${maxDecodedBytes}-byte budget`
+    )
+  }
+
+  const { byteSize, start } = tensorRange(info, index.data_start, index.buffer.byteLength)
+  const bytes = new Uint8Array(index.buffer, start, byteSize)
+  return {
+    data: dequantize(bytes, info.type, numel),
+    shape: dimsToShape(info.dims),
+    dims: info.dims,
+    rank: info.dims.length,
+    quantType: typeName(info.type),
+    decodedBytes,
+  }
+}
+
 /**
  * Parse and dequantize every tensor in a GGUF file.
  *
  * Decodes the whole file into Float32Array storage (4 bytes per weight), so it
- * is only appropriate for small files. Prefer loadTensor() for anything else.
+ * is only appropriate for small files. Prefer openGGUF() + loadTensor() for
+ * anything else; this entry point is kept for tests and small tooling.
  *
  * @param {ArrayBuffer} buffer
  * @returns {Promise<Map<string, {data: Float32Array, shape: [number,number], quantType: string}>>}
