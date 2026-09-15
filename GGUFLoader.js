@@ -187,7 +187,7 @@ function dequantizeF16(bytes, n) {
 function dequantizeQ8_0(bytes, n) {
   const view    = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const out     = new Float32Array(n)
-  const nblocks = Math.floor(n / 32)
+  const nblocks = n / 32
   for (let b = 0; b < nblocks; b++) {
     const base = b * 34
     const d    = fp16ToFloat32(view.getUint16(base, true))
@@ -196,18 +196,32 @@ function dequantizeQ8_0(bytes, n) {
   return out
 }
 
+// Block element ordering, for the four legacy 4/5-bit types below.
+//
+// llama.cpp packs a 32-element block into 16 bytes as two halves, NOT as
+// interleaved pairs: the low nibble of byte j is element j, and the high
+// nibble of byte j is element j + 16.
+//
+//   ggml-quants.c, dequantize_row_q4_0:
+//     y[i*qk + j + 0 ] = (x[i].qs[j] & 0x0F) - 8) * d
+//     y[i*qk + j + qk/2] = ((x[i].qs[j] >>  4) - 8) * d
+//
+// Decoding them as (2j, 2j+1) pairs produces a permutation of the right
+// values, which looks plausible in a visualization and is wrong everywhere.
+
 // Q4_0: 18-byte blocks — fp16 scale + 16 bytes (32 packed 4-bit values), offset by -8
 function dequantizeQ4_0(bytes, n) {
   const view    = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const out     = new Float32Array(n)
-  const nblocks = Math.floor(n / 32)
+  const nblocks = n / 32
   for (let b = 0; b < nblocks; b++) {
     const base = b * 18
     const d    = fp16ToFloat32(view.getUint16(base, true))
-    for (let i = 0; i < 16; i++) {
-      const byte = view.getUint8(base + 2 + i)
-      out[b * 32 + i * 2 + 0] = d * ((byte & 0xF) - 8)
-      out[b * 32 + i * 2 + 1] = d * ((byte >> 4) - 8)
+    const y    = b * 32
+    for (let j = 0; j < 16; j++) {
+      const byte = view.getUint8(base + 2 + j)
+      out[y + j     ] = d * ((byte & 0x0F) - 8)
+      out[y + j + 16] = d * ((byte >>  4)  - 8)
     }
   }
   return out
@@ -217,35 +231,42 @@ function dequantizeQ4_0(bytes, n) {
 function dequantizeQ4_1(bytes, n) {
   const view    = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const out     = new Float32Array(n)
-  const nblocks = Math.floor(n / 32)
+  const nblocks = n / 32
   for (let b = 0; b < nblocks; b++) {
     const base = b * 20
     const d    = fp16ToFloat32(view.getUint16(base, true))
     const m    = fp16ToFloat32(view.getUint16(base + 2, true))
-    for (let i = 0; i < 16; i++) {
-      const byte = view.getUint8(base + 4 + i)
-      out[b * 32 + i * 2 + 0] = d * (byte & 0xF) + m
-      out[b * 32 + i * 2 + 1] = d * (byte >> 4)  + m
+    const y    = b * 32
+    for (let j = 0; j < 16; j++) {
+      const byte = view.getUint8(base + 4 + j)
+      out[y + j     ] = d * (byte & 0x0F) + m
+      out[y + j + 16] = d * (byte >>  4)  + m
     }
   }
   return out
 }
 
 // Q5_0: 22-byte blocks — fp16 scale + uint32 high-bit mask + 16 bytes low nibbles, offset -16
+//
+// The fifth bit of element j lives in bit j of qh; the fifth bit of element
+// j + 16 lives in bit j + 16. llama.cpp writes this as:
+//   xh_0 = ((qh >> j) << 4) & 0x10
+//   xh_1 =  (qh >> (j + 12)) & 0x10
 function dequantizeQ5_0(bytes, n) {
   const view    = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const out     = new Float32Array(n)
-  const nblocks = Math.floor(n / 32)
+  const nblocks = n / 32
   for (let b = 0; b < nblocks; b++) {
     const base = b * 22
     const d    = fp16ToFloat32(view.getUint16(base, true))
     const qh   = view.getUint32(base + 2, true)
-    for (let i = 0; i < 16; i++) {
-      const byte = view.getUint8(base + 6 + i)
-      const xh0  = (qh >>> (i * 2 + 0)) & 1
-      const xh1  = (qh >>> (i * 2 + 1)) & 1
-      out[b * 32 + i * 2 + 0] = d * (((byte & 0xF) | (xh0 << 4)) - 16)
-      out[b * 32 + i * 2 + 1] = d * (((byte >> 4)  | (xh1 << 4)) - 16)
+    const y    = b * 32
+    for (let j = 0; j < 16; j++) {
+      const byte = view.getUint8(base + 6 + j)
+      const xh0  = ((qh >>> j) << 4) & 0x10
+      const xh1  =  (qh >>> (j + 12)) & 0x10
+      out[y + j     ] = d * (((byte & 0x0F) | xh0) - 16)
+      out[y + j + 16] = d * (((byte >>  4)  | xh1) - 16)
     }
   }
   return out
@@ -255,18 +276,19 @@ function dequantizeQ5_0(bytes, n) {
 function dequantizeQ5_1(bytes, n) {
   const view    = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const out     = new Float32Array(n)
-  const nblocks = Math.floor(n / 32)
+  const nblocks = n / 32
   for (let b = 0; b < nblocks; b++) {
     const base = b * 24
     const d    = fp16ToFloat32(view.getUint16(base, true))
     const m    = fp16ToFloat32(view.getUint16(base + 2, true))
     const qh   = view.getUint32(base + 4, true)
-    for (let i = 0; i < 16; i++) {
-      const byte = view.getUint8(base + 8 + i)
-      const xh0  = (qh >>> (i * 2 + 0)) & 1
-      const xh1  = (qh >>> (i * 2 + 1)) & 1
-      out[b * 32 + i * 2 + 0] = d * ((byte & 0xF) | (xh0 << 4)) + m
-      out[b * 32 + i * 2 + 1] = d * ((byte >> 4)  | (xh1 << 4)) + m
+    const y    = b * 32
+    for (let j = 0; j < 16; j++) {
+      const byte = view.getUint8(base + 8 + j)
+      const xh0  = ((qh >>> j) << 4) & 0x10
+      const xh1  =  (qh >>> (j + 12)) & 0x10
+      out[y + j     ] = d * ((byte & 0x0F) | xh0) + m
+      out[y + j + 16] = d * ((byte >>  4)  | xh1) + m
     }
   }
   return out
@@ -278,7 +300,7 @@ function dequantizeQ5_1(bytes, n) {
 function dequantizeQ6_K(bytes, n) {
   const view    = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const out     = new Float32Array(n)
-  const nblocks = Math.floor(n / 256)
+  const nblocks = n / 256
   for (let b = 0; b < nblocks; b++) {
     const base = b * 210
     const d    = fp16ToFloat32(view.getUint16(base + 208, true)) // at offset 128+64+16
@@ -307,105 +329,169 @@ function dequantizeQ6_K(bytes, n) {
   return out
 }
 
-// Q8_K: 256-element super-blocks — 292 bytes each
-// Layout: d (float32, 4 bytes) + qs[256] (int8) + bsums[16] (int16, unused for dequant)
-// Reference: llama.cpp ggml-quants.c dequantize_row_q8_K
-function dequantizeQ8_K(bytes, n) {
-  const view    = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  const out     = new Float32Array(n)
-  const nblocks = Math.floor(n / 256)
-  for (let b = 0; b < nblocks; b++) {
-    const base = b * 292
-    const d    = view.getFloat32(base, true)
-    for (let i = 0; i < 256; i++) out[b * 256 + i] = d * view.getInt8(base + 4 + i)
-  }
-  return out
+
+// --- Type support table ---
+//
+// One place decides what this loader can decode. Everything else — dispatch,
+// byte-size arithmetic, the `supported` flag on a listing — reads from here,
+// so a type can never be half-supported.
+//
+// block: elements per block. type_size: bytes per block.
+// Q8_K is deliberately absent: it is a runtime-only type used for dot-product
+// intermediates and does not appear in GGUF files, so a decoder for it could
+// never be exercised or verified. See docs/adr/ADR-0003.
+const QUANT_SPEC = {
+  [GGUF_TYPE.F32]:  { block:   1, type_size:  4, decode: (bytes, n) => {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, n * 4)
+    const out  = new Float32Array(n)
+    for (let i = 0; i < n; i++) out[i] = view.getFloat32(i * 4, true)
+    return out
+  } },
+  [GGUF_TYPE.F16]:  { block:   1, type_size:  2, decode: dequantizeF16 },
+  [GGUF_TYPE.Q4_0]: { block:  32, type_size: 18, decode: dequantizeQ4_0 },
+  [GGUF_TYPE.Q4_1]: { block:  32, type_size: 20, decode: dequantizeQ4_1 },
+  [GGUF_TYPE.Q5_0]: { block:  32, type_size: 22, decode: dequantizeQ5_0 },
+  [GGUF_TYPE.Q5_1]: { block:  32, type_size: 24, decode: dequantizeQ5_1 },
+  [GGUF_TYPE.Q8_0]: { block:  32, type_size: 34, decode: dequantizeQ8_0 },
+  [GGUF_TYPE.Q6_K]: { block: 256, type_size: 210, decode: dequantizeQ6_K },
 }
 
-// Dispatch dequantization by type
-function dequantize(bytes, type, n) {
-  switch (type) {
-    case GGUF_TYPE.F32:  {
-      // F32 values are stored in native little-endian order
-      const view = new DataView(bytes.buffer, bytes.byteOffset, n * 4)
-      const out  = new Float32Array(n)
-      for (let i = 0; i < n; i++) out[i] = view.getFloat32(i * 4, true)
-      return out
-    }
-    case GGUF_TYPE.F16:  return dequantizeF16(bytes, n)
-    case GGUF_TYPE.Q4_0: return dequantizeQ4_0(bytes, n)
-    case GGUF_TYPE.Q4_1: return dequantizeQ4_1(bytes, n)
-    case GGUF_TYPE.Q5_0: return dequantizeQ5_0(bytes, n)
-    case GGUF_TYPE.Q5_1: return dequantizeQ5_1(bytes, n)
-    case GGUF_TYPE.Q8_0: return dequantizeQ8_0(bytes, n)
-    case GGUF_TYPE.Q6_K: return dequantizeQ6_K(bytes, n)
-    case GGUF_TYPE.Q8_K: return dequantizeQ8_K(bytes, n)
-    default:
-      console.warn(`GGUFLoader: unsupported quant type ${GGUF_TYPE_NAME[type] ?? type}, returning zeros`)
-      return new Float32Array(n)
-  }
+const typeName = type => GGUF_TYPE_NAME[type] ?? `type_${type}`
+
+/** True when this loader can decode the given GGUF quant type id. */
+export function isSupportedType(type) {
+  return Object.prototype.hasOwnProperty.call(QUANT_SPEC, type)
 }
 
-// Byte size of the raw (quantized) tensor data for a given type and element count
+/** Human-readable list of the quant types this loader decodes. */
+export const SUPPORTED_TYPE_NAMES = Object.keys(QUANT_SPEC).map(t => typeName(Number(t)))
+
+/**
+ * Byte size of the raw (quantized) tensor data.
+ * Throws for unsupported types and for element counts that do not fill whole
+ * blocks — both indicate the file cannot be decoded correctly, and guessing a
+ * size here is how a bad read turns into plausible-looking numbers.
+ */
 function tensorByteSize(type, numel) {
-  switch (type) {
-    case GGUF_TYPE.F32:  return numel * 4
-    case GGUF_TYPE.F16:  return numel * 2
-    case GGUF_TYPE.Q4_0: return Math.floor(numel / 32) * 18
-    case GGUF_TYPE.Q4_1: return Math.floor(numel / 32) * 20
-    case GGUF_TYPE.Q5_0: return Math.floor(numel / 32) * 22
-    case GGUF_TYPE.Q5_1: return Math.floor(numel / 32) * 24
-    case GGUF_TYPE.Q8_0: return Math.floor(numel / 32) * 34
-    case GGUF_TYPE.Q6_K: return Math.floor(numel / 256) * 210
-    case GGUF_TYPE.Q8_K: return Math.floor(numel / 256) * 292
-    default:             return 0
+  const spec = QUANT_SPEC[type]
+  if (!spec) {
+    throw new Error(
+      `GGUFLoader: unsupported quant type ${typeName(type)}. ` +
+      `Supported: ${SUPPORTED_TYPE_NAMES.join(', ')}`
+    )
   }
+  if (numel % spec.block !== 0) {
+    throw new Error(
+      `GGUFLoader: ${typeName(type)} tensor has ${numel} elements, ` +
+      `not a multiple of its ${spec.block}-element block size`
+    )
+  }
+  return (numel / spec.block) * spec.type_size
+}
+
+// Dispatch dequantization by type. Unsupported types throw; they are never
+// filled with zeros, because a zero-filled tensor is indistinguishable from
+// real data once it reaches the visualization.
+function dequantize(bytes, type, n) {
+  const spec = QUANT_SPEC[type]
+  if (!spec) {
+    throw new Error(
+      `GGUFLoader: unsupported quant type ${typeName(type)}. ` +
+      `Supported: ${SUPPORTED_TYPE_NAMES.join(', ')}`
+    )
+  }
+  return spec.decode(bytes, n)
 }
 
 // Compute 2D shape from GGUF dims array.
-// GGUF stores dims in reverse (column-major) order: dims[0] is the innermost (fastest) dimension.
-// For a weight matrix W of shape [rows, cols], GGUF stores dims = [cols, rows].
-// We return [rows, cols] = [dims[1], dims[0]] for 2-D tensors.
+// GGUF stores dims in reverse (column-major) order: dims[0] is the innermost
+// (fastest) dimension. For a weight matrix W of shape [rows, cols], GGUF
+// stores dims = [cols, rows], so we return [rows, cols] = [dims[1], dims[0]].
+// For rank > 2 this collapses the trailing dims; callers that need the real
+// extents read `dims` and `rank` from the listing instead.
 function dimsToShape(dims) {
   if (dims.length === 0) return [1, 1]
   if (dims.length === 1) return [1, dims[0]]
   return [dims[1], dims[0]]
 }
 
+// Locate one tensor's byte range and verify it lies inside the file.
+function tensorRange(info, data_start, byteLength) {
+  const numel    = info.dims.reduce((a, b) => a * b, 1)
+  const byteSize = tensorByteSize(info.type, numel)
+  const start    = data_start + info.offset
+  const end      = start + byteSize
+  if (start < 0 || end > byteLength) {
+    throw new Error(
+      `GGUFLoader: tensor '${info.name}' byte range [${start}, ${end}) is out of bounds ` +
+      `for a ${byteLength}-byte file (truncated or corrupt)`
+    )
+  }
+  return { numel, byteSize, start, end }
+}
+
 // ---
 
 /**
- * List tensors in a GGUF file without dequantizing.
+ * List tensors in a GGUF file without decoding any of them.
+ *
  * @param {ArrayBuffer} buffer
- * @returns {Array<{name: string, shape: [number,number], quantType: string, byteSize: number}>}
+ * @returns {Array<{
+ *   name: string, shape: [number, number], dims: number[], rank: number,
+ *   quantType: string, supported: boolean, numel: number,
+ *   byteSize: number|null, decodedBytes: number
+ * }>}
  */
 export function listTensors(buffer) {
   const { tensor_infos } = parseGGUFStructure(buffer)
   return tensor_infos.map(({ name, dims, type }) => {
     const numel     = dims.reduce((a, b) => a * b, 1)
-    const shape     = dimsToShape(dims)
-    const quantType = GGUF_TYPE_NAME[type] ?? `type_${type}`
-    const byteSize  = tensorByteSize(type, numel)
-    return { name, shape, quantType, byteSize }
+    const supported = isSupportedType(type)
+    let byteSize = null
+    if (supported) {
+      try {
+        byteSize = tensorByteSize(type, numel)
+      } catch {
+        byteSize = null
+      }
+    }
+    return {
+      name,
+      shape: dimsToShape(dims),
+      dims,
+      rank: dims.length,
+      quantType: typeName(type),
+      supported,
+      numel,
+      byteSize,
+      decodedBytes: numel * 4,
+    }
   })
 }
 
 /**
- * Parse and dequantize all tensors in a GGUF file.
+ * Parse and dequantize every tensor in a GGUF file.
+ *
+ * Decodes the whole file into Float32Array storage (4 bytes per weight), so it
+ * is only appropriate for small files. Prefer loadTensor() for anything else.
+ *
  * @param {ArrayBuffer} buffer
  * @returns {Promise<Map<string, {data: Float32Array, shape: [number,number], quantType: string}>>}
  */
 export async function loadGGUF(buffer) {
   const { tensor_infos, data_start } = parseGGUFStructure(buffer)
   const result = new Map()
-  for (const { name, dims, type, offset } of tensor_infos) {
-    const numel    = dims.reduce((a, b) => a * b, 1)
-    const byteSize = tensorByteSize(type, numel)
-    const bytes    = new Uint8Array(buffer, data_start + offset, byteSize)
-    const data     = dequantize(bytes, type, numel)
-    const shape    = dimsToShape(dims)
-    const quantType = GGUF_TYPE_NAME[type] ?? `type_${type}`
-    result.set(name, { data, shape, quantType })
-  }
+  // Validate every tensor before decoding any, so a file that cannot be fully
+  // read fails before it has produced a partial, plausible-looking result.
+  const ranges = tensor_infos.map(info => tensorRange(info, data_start, buffer.byteLength))
+  tensor_infos.forEach((info, i) => {
+    const { numel, byteSize, start } = ranges[i]
+    const bytes = new Uint8Array(buffer, start, byteSize)
+    result.set(info.name, {
+      data: dequantize(bytes, info.type, numel),
+      shape: dimsToShape(info.dims),
+      quantType: typeName(info.type),
+    })
+  })
   return result
 }
