@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>mm browser harness</title>
+  <script async src="../../lib/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../lib/three.module.js",
+        "three/addons/": "../../lib/jsm/",
+        "lil-gui": "../../lib/lil-gui.js"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <pre id="out">loading modules...</pre>
+
+  <!--
+    Runs the numeric and decoder checks inside a real browser, against the same
+    source files index.html loads. Node coverage proves the logic; this proves
+    the same code behaves the same way once three.js, the importmap and the
+    module shim are in play.
+  -->
+  <script type="module">
+    import * as viz from '../../viz.js'
+    import * as loader from '../../GGUFLoader.js'
+
+    window.__mm = { viz, loader, ready: true }
+    document.getElementById('out').textContent =
+      'modules loaded\nviz exports: ' + Object.keys(viz).length +
+      '\nloader exports: ' + Object.keys(loader).join(', ')
+  </script>
+</body>
+
+</html>

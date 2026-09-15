@@ -1043,6 +1043,10 @@
     // GGUF import: drop a file, pick a tensor, map it into an operand
     //
 
+    // Debug/verification handle: the browser gates in tests/browser drive the
+    // real page and need to call into the same module instance it is using.
+    window.__mmviz = viz
+
     const MAX_MATRIX_DIM = 1024   // matches the h/w GUI range
 
     const ggufStatusEl = document.getElementById('gguf-status')
