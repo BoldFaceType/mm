@@ -1,0 +1,16 @@
+{
+  "name": "mm",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Inside the Matrix \u2014 matmul visualization, BoldFaceType fork with GGUF import",
+  "type": "module",
+  "scripts": {
+    "test": "node --import ./tests/helpers/register-hooks.mjs --test \"tests/unit/*.test.mjs\"",
+    "test:unit": "node --import ./tests/helpers/register-hooks.mjs --test \"tests/unit/*.test.mjs\"",
+    "test:browser": "node tests/browser/run-browser-gates.mjs",
+    "check:syntax": "node scripts/check-js-syntax.mjs",
+    "fixtures": "python3 tests/fixtures/make_fixtures.py",
+    "verify": "npm run check:syntax && npm run test"
+  },
+  "license": "MIT"
+}
