@@ -5,11 +5,7 @@
 // Registered via tests/helpers/register-hooks.mjs, which package.json loads
 // with --import. Production source is not modified.
 
-import { pathToFileURL } from "node:url";
-
-const STUB = pathToFileURL(
-  new URL("./three-stub.mjs", import.meta.url).pathname,
-).href;
+const STUB = new URL("./three-stub.mjs", import.meta.url).href;
 
 export async function resolve(specifier, context, nextResolve) {
   if (specifier === "three" || specifier.startsWith("three/")) {
