@@ -156,12 +156,206 @@
         display: block;
       }
     }
+
+    /* --- GGUF tensor picker --- */
+
+    #gguf-picker {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.55);
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    #gguf-picker.open {
+      display: block;
+    }
+
+    #gguf-picker-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(760px, 92vw);
+      max-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      background: #1b1b1b;
+      color: #e8e8e8;
+      border: 1px solid #444;
+      border-radius: 6px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    #gguf-picker-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid #333;
+    }
+
+    #gguf-picker-file {
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    #gguf-picker-sub {
+      color: #999;
+      margin-top: 3px;
+    }
+
+    #gguf-picker-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid #333;
+    }
+
+    #gguf-picker-controls label {
+      color: #bbb;
+    }
+
+    #gguf-filter {
+      flex: 1 1 180px;
+      min-width: 140px;
+      background: #111;
+      color: #e8e8e8;
+      border: 1px solid #444;
+      border-radius: 3px;
+      padding: 4px 6px;
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    #gguf-picker-list {
+      overflow: auto;
+      flex: 1 1 auto;
+    }
+
+    #gguf-picker-list table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    #gguf-picker-list th {
+      position: sticky;
+      top: 0;
+      background: #262626;
+      text-align: left;
+      padding: 5px 8px;
+      color: #aaa;
+      font-weight: normal;
+      border-bottom: 1px solid #383838;
+    }
+
+    #gguf-picker-list td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #2a2a2a;
+      white-space: nowrap;
+    }
+
+    #gguf-picker-list td.tname {
+      white-space: normal;
+      word-break: break-all;
+    }
+
+    #gguf-picker-list tr.pick {
+      cursor: pointer;
+    }
+
+    #gguf-picker-list tr.pick:hover {
+      background: #2f3b2f;
+    }
+
+    #gguf-picker-list tr.blocked {
+      color: #8a8a8a;
+    }
+
+    #gguf-picker-list tr.blocked td.why {
+      color: #d08a6a;
+    }
+
+    #gguf-picker-foot {
+      padding: 8px 12px;
+      border-top: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gguf-btn {
+      background: #333;
+      color: #e8e8e8;
+      border: 1px solid #555;
+      border-radius: 3px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    .gguf-btn:hover {
+      background: #444;
+    }
+
+    #gguf-status {
+      display: none;
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      z-index: 1900;
+      max-width: min(560px, 90vw);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      background: #1b1b1b;
+      color: #e8e8e8;
+      border: 1px solid #444;
+    }
+
+    #gguf-status.show {
+      display: block;
+    }
+
+    #gguf-status.error {
+      border-color: #a5442e;
+      color: #ffb59b;
+    }
   </style>
 </head>
 
 <body>
   <div id="info">loading</div>
   <div id="container"></div>
+
+  <div id="gguf-status"></div>
+
+  <div id="gguf-picker">
+    <div id="gguf-picker-panel">
+      <div id="gguf-picker-head">
+        <div id="gguf-picker-file"></div>
+        <div id="gguf-picker-sub"></div>
+      </div>
+      <div id="gguf-picker-controls">
+        <label for="gguf-operand">load into</label>
+        <select id="gguf-operand" class="gguf-btn">
+          <option value="left">left (L)</option>
+          <option value="right">right (R)</option>
+        </select>
+        <label><input type="checkbox" id="gguf-fit" checked> resize matrix to tensor</label>
+        <input id="gguf-filter" type="text" placeholder="filter by name" autocomplete="off">
+      </div>
+      <div id="gguf-picker-list"></div>
+      <div id="gguf-picker-foot">
+        <span id="gguf-picker-count"></span>
+        <button id="gguf-cancel" class="gguf-btn">cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="instructions" class="instructions-modal">
     <div id="minimized" class="minimized-content">
       <span id="maximize" class="control-btn">&gt;</span>
@@ -827,21 +1021,171 @@
       show()
     }
 
-    // Re-init when an async GGUF fetch completes
+    // Re-init when an async GGUF decode completes
     window.addEventListener('gguf-loaded', () => initObj())
 
-    // GGUF file drag-and-drop support
+    //
+    // GGUF import: drop a file, pick a tensor, map it into an operand
+    //
+
+    const MAX_MATRIX_DIM = 1024   // matches the h/w GUI range
+
+    const ggufStatusEl = document.getElementById('gguf-status')
+
+    function ggufStatus(message, kind = 'info') {
+      if (!message) {
+        ggufStatusEl.className = ''
+        ggufStatusEl.textContent = ''
+        return
+      }
+      ggufStatusEl.textContent = message
+      ggufStatusEl.className = kind === 'error' ? 'show error' : 'show'
+    }
+
+    const pickerEl    = document.getElementById('gguf-picker')
+    const pickerFile  = document.getElementById('gguf-picker-file')
+    const pickerSub   = document.getElementById('gguf-picker-sub')
+    const pickerList  = document.getElementById('gguf-picker-list')
+    const pickerCount = document.getElementById('gguf-picker-count')
+    const operandEl   = document.getElementById('gguf-operand')
+    const fitEl       = document.getElementById('gguf-fit')
+    const filterEl    = document.getElementById('gguf-filter')
+
+    let pickerState = null   // { source, label, tensors }
+
+    const closePicker = () => {
+      pickerEl.classList.remove('open')
+      pickerState = null
+    }
+
+    document.getElementById('gguf-cancel').addEventListener('click', closePicker)
+    pickerEl.addEventListener('click', e => { if (e.target === pickerEl) closePicker() })
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && pickerEl.classList.contains('open')) closePicker()
+    })
+    filterEl.addEventListener('input', () => renderPickerList())
+
+    // Why a tensor cannot be mapped into a 2D operand, or '' if it can.
+    function blockedReason(t) {
+      if (!t.supported) return `${t.quantType} not decodable`
+      if (t.rank > 2) return `rank ${t.rank} — 2D only`
+      const [h, w] = t.shape
+      if (h < 1 || w < 1) return 'empty tensor'
+      return ''
+    }
+
+    function renderPickerList() {
+      if (!pickerState) return
+      const needle = filterEl.value.trim().toLowerCase()
+      const rows = pickerState.tensors.filter(
+        t => !needle || t.name.toLowerCase().includes(needle))
+
+      const table = document.createElement('table')
+      table.innerHTML =
+        '<thead><tr><th>tensor</th><th>dims</th><th>type</th><th>decoded</th><th></th></tr></thead>'
+      const tbody = document.createElement('tbody')
+
+      for (const t of rows) {
+        const why = blockedReason(t)
+        const tr = document.createElement('tr')
+        tr.className = why ? 'blocked' : 'pick'
+
+        const mib = (t.decodedBytes / (1024 * 1024))
+        const cells = [
+          ['tname', t.name],
+          ['', `[${t.shape[0]} x ${t.shape[1]}]` + (t.rank > 2 ? ` of ${t.dims.join('x')}` : '')],
+          ['', t.quantType],
+          ['', mib >= 0.05 ? `${mib.toFixed(1)} MiB` : `${t.decodedBytes} B`],
+          ['why', why],
+        ]
+        for (const [cls, text] of cells) {
+          const td = document.createElement('td')
+          if (cls) td.className = cls
+          td.textContent = text
+          tr.appendChild(td)
+        }
+        if (!why) tr.addEventListener('click', () => choose(t))
+        tbody.appendChild(tr)
+      }
+
+      table.appendChild(tbody)
+      pickerList.replaceChildren(table)
+
+      const usable = pickerState.tensors.filter(t => !blockedReason(t)).length
+      pickerCount.textContent =
+        `${rows.length} shown / ${pickerState.tensors.length} tensors, ${usable} mappable`
+    }
+
+    function choose(t) {
+      const side = operandEl.value === 'right' ? 'right' : 'left'
+      const leaf = params[side]
+      const [th, tw] = t.shape
+
+      leaf.init           = 'gguf'
+      leaf.gguf_url       = pickerState.source
+      leaf.gguf_tensor    = t.name
+      leaf.gguf_row0      = 0
+      leaf.gguf_col0      = 0
+      leaf.gguf_transpose = false
+
+      let note = ''
+      if (fitEl.checked) {
+        const h = Math.min(th, MAX_MATRIX_DIM)
+        const w = Math.min(tw, MAX_MATRIX_DIM)
+        // Keep the shared inner dimension consistent, the way the h/w controls do.
+        leaf.h = h
+        leaf.w = w
+        viz.fixShape(h, w, leaf, [() => params], params)
+        if (h < th || w < tw) {
+          note = ` — showing the top-left ${h}x${w} of ${th}x${tw}`
+        }
+      } else if (th > leaf.h || tw > leaf.w) {
+        note = ` — showing the top-left ${leaf.h}x${leaf.w} of ${th}x${tw}`
+      }
+
+      closePicker()
+      ggufStatus(`${side}: ${t.name} [${th} x ${tw}] ${t.quantType}${note}`)
+      initFromParams()
+    }
+
+    async function openPickerForSource(source, label) {
+      ggufStatus(`indexing ${label}...`)
+      try {
+        const tensors = await viz.indexGGUFSource(source)
+        if (tensors.length === 0) {
+          ggufStatus(`${label} contains no tensors`, 'error')
+          return
+        }
+        pickerState = { source, label, tensors }
+        pickerFile.textContent = label
+        const usable = tensors.filter(t => !blockedReason(t)).length
+        pickerSub.textContent =
+          `${tensors.length} tensors, ${usable} mappable — click one to load it`
+        filterEl.value = ''
+        renderPickerList()
+        pickerEl.classList.add('open')
+        ggufStatus('')
+        filterEl.focus()
+      } catch (err) {
+        ggufStatus(`could not read ${label}: ${err.message}`, 'error')
+      }
+    }
+
     document.body.addEventListener('dragover', e => e.preventDefault())
     document.body.addEventListener('drop', e => {
       e.preventDefault()
       const file = e.dataTransfer.files[0]
-      if (!file || !file.name.toLowerCase().endsWith('.gguf')) return
+      if (!file) return
+      if (!file.name.toLowerCase().endsWith('.gguf')) {
+        ggufStatus(`${file.name} is not a .gguf file`, 'error')
+        return
+      }
+      ggufStatus(`reading ${file.name}...`)
       const reader = new FileReader()
+      reader.onerror = () => ggufStatus(`could not read ${file.name}`, 'error')
       reader.onload = ev => {
-        viz.registerLocalGGUFBuffer(file.name, ev.target.result)
-        params.left.init     = 'gguf'
-        params.left.gguf_url = 'local:' + file.name
-        initFromParams()
+        const source = viz.registerLocalGGUFBuffer(file.name, ev.target.result)
+        openPickerForSource(source, file.name)
       }
       reader.readAsArrayBuffer(file)
     })

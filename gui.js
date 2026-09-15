@@ -99,6 +99,9 @@ export function initGui(params, callbacks, info) {
       expr: p.expr,
       gguf_url: p.gguf_url,
       gguf_tensor: p.gguf_tensor,
+      gguf_row0: p.gguf_row0,
+      gguf_col0: p.gguf_col0,
+      gguf_transpose: p.gguf_transpose,
       min: p.min,
       max: p.max,
       dropout: p.dropout,
@@ -125,7 +128,8 @@ export function initGui(params, callbacks, info) {
         anim: viz.defaultAnim(),
         layout: layoutProto(pp, is_left),
       })
-      util.deleteProps(p, ['h', 'w', 'init', 'url', 'expr', 'gguf_url', 'gguf_tensor', 'min', 'max', 'dropout'])
+      util.deleteProps(p, ['h', 'w', 'init', 'url', 'expr', 'gguf_url', 'gguf_tensor',
+        'gguf_row0', 'gguf_col0', 'gguf_transpose', 'min', 'max', 'dropout'])
       addMatmulParams(g, path, ancestors)
     } else {
       util.updateProps(p, {
@@ -136,6 +140,9 @@ export function initGui(params, callbacks, info) {
         expr: p === pp.left ? viz.leftLeaf(p).expr : viz.rightLeaf(p).expr,
         gguf_url: p === pp.left ? viz.leftLeaf(p).gguf_url : viz.rightLeaf(p).gguf_url,
         gguf_tensor: p === pp.left ? viz.leftLeaf(p).gguf_tensor : viz.rightLeaf(p).gguf_tensor,
+        gguf_row0: p === pp.left ? viz.leftLeaf(p).gguf_row0 : viz.rightLeaf(p).gguf_row0,
+        gguf_col0: p === pp.left ? viz.leftLeaf(p).gguf_col0 : viz.rightLeaf(p).gguf_col0,
+        gguf_transpose: p === pp.left ? viz.leftLeaf(p).gguf_transpose : viz.rightLeaf(p).gguf_transpose,
         min: -1,
         max: 1,
         dropout: 0,
@@ -182,6 +189,9 @@ export function initGui(params, callbacks, info) {
       findController(g, 'expr').show(v == 'expr')
       findController(g, 'gguf_url').show(v == 'gguf')
       findController(g, 'gguf_tensor').show(v == 'gguf')
+      findController(g, 'gguf_row0').show(v == 'gguf')
+      findController(g, 'gguf_col0').show(v == 'gguf')
+      findController(g, 'gguf_transpose').show(v == 'gguf')
       findController(g, 'min').show(viz.useRange(v))
       findController(g, 'max').show(viz.useRange(v))
       findController(g, 'dropout').show(viz.useDropout(v))
@@ -206,6 +216,23 @@ export function initGui(params, callbacks, info) {
     p.gguf_tensor ||= '' // temp BC
     g.add(p, 'gguf_tensor').onFinishChange(gguf_tensor => {
       p.gguf_tensor = gguf_tensor
+      initObj()
+    }).show(p.init == 'gguf')
+    // Crop origin into the selected tensor. The matrix extent (h, w) is the
+    // window size; these two pick where the window starts. No wrapping.
+    p.gguf_row0 ??= 0
+    g.add(p, 'gguf_row0').onFinishChange(v => {
+      p.gguf_row0 = Math.max(0, Math.floor(Number(v) || 0))
+      initObj()
+    }).show(p.init == 'gguf')
+    p.gguf_col0 ??= 0
+    g.add(p, 'gguf_col0').onFinishChange(v => {
+      p.gguf_col0 = Math.max(0, Math.floor(Number(v) || 0))
+      initObj()
+    }).show(p.init == 'gguf')
+    p.gguf_transpose ??= false
+    g.add(p, 'gguf_transpose').onChange(v => {
+      p.gguf_transpose = !!v
       initObj()
     }).show(p.init == 'gguf')
     addNumParam(g, 'min', -1.0, 1.0, initObj, path, path).show(viz.useRange(p.init))
