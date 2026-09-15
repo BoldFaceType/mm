@@ -167,6 +167,48 @@ def build_rank3() -> None:
     writer.close()
 
 
+def build_mixed() -> None:
+    """One decodable tensor alongside one the loader cannot decode.
+
+    Whole-file decoding fails on this file entirely. Per-tensor decoding must
+    still return the decodable tensor.
+    """
+    writer = GGUFWriter(HERE / "mixed.gguf", "mm-fixture")
+    shape = (N_ROWS, N_COLS)
+
+    good = quants.quantize(source_matrix(4242), QT.Q8_0)
+    writer.add_tensor("good.q8_0", good, raw_shape=good.shape, raw_dtype=QT.Q8_0)
+
+    bad = np.zeros(quants.quant_shape_to_byte_shape(shape, QT.Q4_K), dtype=np.uint8)
+    writer.add_tensor("bad.q4_k", bad, raw_shape=bad.shape, raw_dtype=QT.Q4_K)
+
+    writer.write_header_to_file()
+    writer.write_kv_data_to_file()
+    writer.write_tensors_to_file()
+    writer.close()
+
+    return {
+        "good.q8_0": [
+            float(v)
+            for v in quants.dequantize(good, QT.Q8_0).astype(np.float32).reshape(-1)
+        ]
+    }
+
+
+def build_many() -> None:
+    """Many tensors, so a whole-file decode is measurably wasteful."""
+    writer = GGUFWriter(HERE / "many.gguf", "mm-fixture")
+    for i in range(24):
+        raw = quants.quantize(source_matrix(9000 + i, rows=16, cols=256), QT.Q8_0)
+        writer.add_tensor(
+            f"blk.{i}.weight", raw, raw_shape=raw.shape, raw_dtype=QT.Q8_0
+        )
+    writer.write_header_to_file()
+    writer.write_kv_data_to_file()
+    writer.write_tensors_to_file()
+    writer.close()
+
+
 def build_truncated() -> None:
     """fixtures.gguf with the tail of the data section removed."""
     full = (HERE / "fixtures.gguf").read_bytes()
@@ -177,6 +219,8 @@ def main() -> None:
     expected = build_main()
     build_unsupported()
     build_rank3()
+    mixed = build_mixed()
+    build_many()
     build_truncated()
 
     meta = {
@@ -185,11 +229,15 @@ def main() -> None:
         "rows": N_ROWS,
         "cols": N_COLS,
         "tensors": expected,
+        "mixed": mixed,
     }
     (HERE / "expected.json").write_text(json.dumps(meta, indent=1))
 
     total = sum(len(t["values"]) for t in expected.values())
-    print("wrote fixtures.gguf, unsupported.gguf, rank3.gguf, truncated.gguf")
+    print(
+        "wrote fixtures.gguf, unsupported.gguf, rank3.gguf, "
+        "mixed.gguf, many.gguf, truncated.gguf"
+    )
     print(f"wrote expected.json - {len(expected)} tensors, {total} reference values")
 
 
