@@ -1,0 +1,299 @@
+
+> mm@0.2.0 test
+> node --import ./tests/helpers/register-hooks.mjs --test 'tests/unit/*.test.mjs'
+
+TAP version 13
+# Subtest: G1.1 listTensors reports every fixture tensor with its quant type
+ok 1 - G1.1 listTensors reports every fixture tensor with its quant type
+  ---
+  duration_ms: 3.020679
+  type: 'test'
+  ...
+# Subtest: G1.2 decoded values match the llama.cpp reference, element for element
+not ok 2 - G1.2 decoded values match the llama.cpp reference, element for element
+  ---
+  duration_ms: 4.407214
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/gguf-decode.test.mjs:47:1'
+  failureType: 'testCodeFailure'
+  error: 'test.q4_0 (Q4_0): worst relative error 3.510e+0 at index 243 (got -2.552734375, reference 0.957275390625); tolerance 0.00001'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/gguf-decode.test.mjs:69:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: G1.3 decoded output is never all zeros for a non-degenerate tensor
+ok 3 - G1.3 decoded output is never all zeros for a non-degenerate tensor
+  ---
+  duration_ms: 1.563852
+  type: 'test'
+  ...
+# Subtest: G1.4 half-block ordering: first and seventeenth elements are distinct halves
+not ok 4 - G1.4 half-block ordering: first and seventeenth elements are distinct halves
+  ---
+  duration_ms: 2.130342
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/gguf-decode.test.mjs:89:1'
+  failureType: 'testCodeFailure'
+  error: 'test.q4_0: element 1 is -2.1875, reference -3.0625 — block element ordering does not match llama.cpp'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/gguf-decode.test.mjs:100:14)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# GGUFLoader: unsupported quant type Q4_K, returning zeros
+# Subtest: G2.1 an unsupported quant type is rejected, not zero-filled
+not ok 5 - G2.1 an unsupported quant type is rejected, not zero-filled
+  ---
+  duration_ms: 2.853655
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/gguf-structure.test.mjs:25:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection: loading a Q4_K tensor must throw rather than return zeros'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  stack: |-
+    async TestContext.<anonymous> (file:///home/claude/mm/tests/unit/gguf-structure.test.mjs:26:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: G2.2 an unsupported type is still listed, flagged as undecodable
+not ok 6 - G2.2 an unsupported type is still listed, flagged as undecodable
+  ---
+  duration_ms: 0.875351
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/gguf-structure.test.mjs:45:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    listTensors should mark tensors the decoder cannot handle
+    + actual - expected
+    
+    + undefined
+    - false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/gguf-structure.test.mjs:49:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: G2.3 every supported fixture tensor is listed as supported
+not ok 7 - G2.3 every supported fixture tensor is listed as supported
+  ---
+  duration_ms: 0.699983
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/gguf-structure.test.mjs:56:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    test.f32 (F32)
+    + actual - expected
+    
+    + undefined
+    - true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/gguf-structure.test.mjs:58:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: G2.4 a truncated data section is rejected before any decode
+not ok 8 - G2.4 a truncated data section is rejected before any decode
+  ---
+  duration_ms: 1.589531
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/gguf-structure.test.mjs:62:1'
+  failureType: 'testCodeFailure'
+  error: 'expected a bounds error, got: Invalid typed array length: 576'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Invalid typed array length: 576'
+  operator: 'match'
+  stack: |-
+    Object.<anonymous> (file:///home/claude/mm/tests/unit/gguf-structure.test.mjs:66:14)
+    expectedException (node:assert:576:17)
+    expectsError (node:assert:701:21)
+    Function.rejects (node:assert:767:3)
+    async TestContext.<anonymous> (file:///home/claude/mm/tests/unit/gguf-structure.test.mjs:63:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: G2.5 a non-GGUF buffer is rejected with a clear message
+ok 9 - G2.5 a non-GGUF buffer is rejected with a clear message
+  ---
+  duration_ms: 0.31713
+  type: 'test'
+  ...
+# Subtest: G2.6 rank-3 tensors are reported with their full dims
+not ok 10 - G2.6 rank-3 tensors are reported with their full dims
+  ---
+  duration_ms: 0.446848
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/gguf-structure.test.mjs:85:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    rank should be reported
+    
+    undefined !== 3
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 3
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/gguf-structure.test.mjs:91:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: G3.1 softmax is shift-invariant for extreme negative logits
+not ok 11 - G3.1 softmax is shift-invariant for extreme negative logits
+  ---
+  duration_ms: 1.631892
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/numerics.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: 'softmax([-1000,-1001]) = [0,0], expected [0.7310585786300049,0.2689414213699951]'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/numerics.test.mjs:24:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: G3.2 softmax rows sum to 1
+not ok 12 - G3.2 softmax rows sum to 1
+  ---
+  duration_ms: 0.346998
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/numerics.test.mjs:30:1'
+  failureType: 'testCodeFailure'
+  error: 'row [-1000,-1001] -> [0,0], sum 0'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/numerics.test.mjs:41:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: G3.3 softmax agrees with the shifted-exponential definition
+ok 13 - G3.3 softmax agrees with the shifted-exponential definition
+  ---
+  duration_ms: 0.363746
+  type: 'test'
+  ...
+# Subtest: G3.4 softmax of a uniform row is uniform
+ok 14 - G3.4 softmax of a uniform row is uniform
+  ---
+  duration_ms: 0.177742
+  type: 'test'
+  ...
+# Subtest: G3.5 Array2D.map returns a mapped array of the same shape
+not ok 15 - G3.5 Array2D.map returns a mapped array of the same shape
+  ---
+  duration_ms: 0.286218
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/numerics.test.mjs:63:1'
+  failureType: 'testCodeFailure'
+  error: 'n is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    Array2D.map (file:///home/claude/mm/viz.js:438:35)
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/numerics.test.mjs:66:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: G3.6 Array2D.map does not mutate the source
+not ok 16 - G3.6 Array2D.map does not mutate the source
+  ---
+  duration_ms: 0.139957
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/numerics.test.mjs:76:1'
+  failureType: 'testCodeFailure'
+  error: 'n is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    Array2D.map (file:///home/claude/mm/viz.js:438:35)
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/numerics.test.mjs:78:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: G3.7 Array2D.map handles the degenerate 0-element case
+not ok 17 - G3.7 Array2D.map handles the degenerate 0-element case
+  ---
+  duration_ms: 0.12946
+  type: 'test'
+  location: '/home/claude/mm/tests/unit/numerics.test.mjs:83:1'
+  failureType: 'testCodeFailure'
+  error: 'n is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    Array2D.map (file:///home/claude/mm/viz.js:438:35)
+    TestContext.<anonymous> (file:///home/claude/mm/tests/unit/numerics.test.mjs:85:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 5
+# fail 12
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 566.869584
